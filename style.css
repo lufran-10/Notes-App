@@ -1,0 +1,154 @@
+@import url("https://fonts.googleapis.com/css2?family=Caveat&display=swap");
+/* font-family: "Caveat", cursive; */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --blue: #b5e9ec;
+  --green: #bbe9ba;
+  --yellow: #f9e558;
+  --pink: #fec3dd;
+  --purple: #ccaafe;
+}
+
+html {
+  overflow-y: scroll;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: url("./images/cork-board.jpg") no-repeat center center fixed;
+  background-size: cover;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+}
+
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  width: 90%;
+  max-width: 1500px;
+  margin: 30px auto;
+  row-gap: 50px;
+  column-gap: 5%;
+}
+
+#create {
+  position: relative;
+  margin-top: 15px;
+  width: 300px;
+  height: 300px;
+  background: var(--blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6em;
+  cursor: pointer;
+  border-radius: 2px;
+  box-shadow: var(--pink) 5px -5px, var(--green) 10px -10px,
+    var(--yellow) 15px -15px, var(--purple) 20px -20px,
+    rgba(0, 0, 0, 0.35) 0px 54px 55px, rgba(0, 0, 0, 0.22) 0px -12px 30px,
+    rgba(0, 0, 0, 0.27) 0px 32px 33px, rgba(0, 0, 0, 0.19) 0px -3px 25px;
+}
+
+#create i {
+  color: #fff;
+}
+
+.note {
+  position: relative;
+  color: #131313;
+  width: 300px;
+  height: 300px;
+  padding: 20px;
+  border-radius: 2px;
+  box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
+}
+
+.note img {
+  position: absolute;
+  width: 50px;
+  border-radius: 50%;
+  top: -15px;
+  left: 125px;
+  cursor: pointer;
+}
+
+.note .input {
+  outline: none;
+  width: 100%;
+  height: 100%;
+  font-family: "Caveat", cursive;
+  font-size: 29px;
+  overflow-y: hidden;
+}
+
+.note .input:focus {
+  overflow-y: auto;
+}
+
+@media screen and (max-width: 800px) {
+  body {
+    padding: 50px 25px;
+  }
+  #create {
+    width: 250px;
+    height: 250px;
+    font-size: 5em;
+  }
+  .note {
+    width: 250px;
+    height: 250px;
+  }
+  .note img {
+    left: 100px;
+  }
+  .note .input {
+    font-size: 25px;
+  }
+}
+
+@media screen and (max-width: 574px) {
+  html {
+    overflow-y: auto;
+  }
+}
+
+@media screen and (max-width: 574px) {
+  #create {
+    margin-left: -15px;
+  }
+}
+
+@media screen and (max-width: 300px) {
+  #create {
+    width: 200px;
+    height: 200px;
+    font-size: 4em;
+  }
+  .note {
+    width: 200px;
+    height: 200px;
+  }
+  .note img {
+    left: 80px;
+    top: -10px;
+    width: 40px;
+  }
+  .note .input {
+    font-size: 20px;
+  }
+}
