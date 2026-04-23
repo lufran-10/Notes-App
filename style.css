@@ -1,40 +1,268 @@
-@import url("https://fonts.googleapis.com/css2?family=Caveat&display=swap");
-/* font-family: "Caveat", cursive; */
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&display=swap");
 
-* {
+/* ── Reset ── */
+*, *::before, *::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+/* ── Variables: modo claro ── */
 :root {
-  --blue: #b5e9ec;
-  --green: #bbe9ba;
+  --blue:   #b5e9ec;
+  --green:  #bbe9ba;
   --yellow: #f9e558;
-  --pink: #fec3dd;
+  --pink:   #fec3dd;
   --purple: #ccaafe;
+
+  --toolbar-bg:     rgba(255, 255, 255, 0.75);
+  --toolbar-border: rgba(0, 0, 0, 0.10);
+  --toolbar-shadow: 0 2px 16px rgba(0,0,0,0.10);
+  --btn-text:       #333;
+  --btn-hover:      rgba(0,0,0,0.07);
+  --count-color:    #666;
+  --modal-bg:       #fff;
+  --modal-overlay:  rgba(0,0,0,0.45);
+  --note-text:      #131313;
+  --char-ok:        rgba(0,0,0,0.30);
+  --drag-shadow:    rgba(0,0,0,0.35);
+  --help-bg:        #fff;
+  --help-border:    rgba(0,0,0,0.10);
+  --help-shadow:    0 8px 32px rgba(0,0,0,0.15);
+  --help-text:      #333;
+  --help-item-hover:rgba(0,0,0,0.04);
 }
 
-html {
-  overflow-y: scroll;
+/* ── Variables: modo oscuro ── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --blue:   #4ab8be;
+    --green:  #5abf58;
+    --yellow: #d4c030;
+    --pink:   #e0799f;
+    --purple: #a87de0;
+
+    --toolbar-bg:     rgba(28, 28, 28, 0.88);
+    --toolbar-border: rgba(255,255,255,0.08);
+    --toolbar-shadow: 0 2px 16px rgba(0,0,0,0.50);
+    --btn-text:       #eee;
+    --btn-hover:      rgba(255,255,255,0.10);
+    --count-color:    #999;
+    --modal-bg:       #252525;
+    --modal-overlay:  rgba(0,0,0,0.70);
+    --note-text:      #111;
+    --char-ok:        rgba(0,0,0,0.35);
+    --drag-shadow:    rgba(0,0,0,0.60);
+    --help-bg:        #252525;
+    --help-border:    rgba(255,255,255,0.08);
+    --help-shadow:    0 8px 32px rgba(0,0,0,0.50);
+    --help-text:      #ddd;
+    --help-item-hover:rgba(255,255,255,0.05);
+  }
 }
 
-html,
-body {
-  height: 100%;
-  margin: 0;
-}
+/* ── Base ── */
+html { overflow-y: scroll; scroll-behavior: smooth; }
+html, body { height: 100%; }
 
 body {
   background: url("./images/cork-board.jpg") no-repeat center center fixed;
   background-size: cover;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
   min-height: 100vh;
+  padding-top: 74px;
 }
 
+/* ── Overlay oscuro (solo dark mode) ── */
+.dark-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+@media (prefers-color-scheme: dark) {
+  .dark-overlay {
+    display: block;
+    background: rgba(0, 0, 0, 0.45);
+  }
+}
+
+/* ── Toolbar ── */
+.toolbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: var(--toolbar-bg);
+  border-bottom: 1px solid var(--toolbar-border);
+  box-shadow: var(--toolbar-shadow);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.toolbar button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--btn-text);
+  font-family: "Caveat", cursive;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.18s, transform 0.12s;
+  white-space: nowrap;
+}
+.toolbar button:hover  { background: var(--btn-hover); }
+.toolbar button:active { transform: scale(0.95); }
+.toolbar button i      { font-size: 14px; }
+#create    { font-weight: 600; }
+#clear-all { color: #c0392b; }
+#help-btn  { margin-left: 4px; font-size: 18px; }
+@media (prefers-color-scheme: dark) {
+  #clear-all { color: #e57373; }
+  #help-btn  { color: #aaa; }
+}
+
+.note-count {
+  margin-left: auto;
+  font-family: "Caveat", cursive;
+  font-size: 16px;
+  color: var(--count-color);
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* ── Panel de ayuda ── */
+.help-panel {
+  position: fixed;
+  top: 62px;
+  right: 16px;
+  z-index: 150;
+  width: min(340px, calc(100vw - 32px));
+  background: var(--help-bg);
+  border: 1px solid var(--help-border);
+  border-radius: 14px;
+  box-shadow: var(--help-shadow);
+  animation: popIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
+  overflow: hidden; /* nunca scroll */
+  /* El texto del panel nunca debe mostrar cursor de escritura */
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.help-panel[hidden] { display: none; }
+
+.help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  font-family: "Caveat", cursive;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--help-text);
+  border-bottom: 1px solid var(--help-border);
+  cursor: default;
+}
+.help-header button {
+  background: none;
+  border: none;
+  color: var(--help-text);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.help-header button:hover { background: var(--btn-hover); }
+
+.help-list {
+  list-style: none;
+  padding: 8px 0 12px;
+}
+.help-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 16px;
+  font-family: "Caveat", cursive;
+  font-size: 17px;
+  color: var(--help-text);
+  transition: background 0.12s;
+  /* Importante: cursor default en cada ítem */
+  cursor: default;
+}
+.help-list li:hover { background: var(--help-item-hover); }
+.help-list li i {
+  margin-top: 2px;
+  font-size: 13px;
+  width: 16px;
+  text-align: center;
+  color: #888;
+  flex-shrink: 0;
+}
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--modal-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.18s ease;
+}
+.modal-overlay[hidden] { display: none; }
+
+.modal {
+  background: var(--modal-bg);
+  border-radius: 14px;
+  padding: 28px 32px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: popIn 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  max-width: calc(100vw - 40px);
+}
+.modal p {
+  font-family: "Caveat", cursive;
+  font-size: 22px;
+  color: var(--btn-text);
+  text-align: center;
+}
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.modal-actions button {
+  padding: 8px 22px;
+  border: none;
+  border-radius: 8px;
+  font-family: "Caveat", cursive;
+  font-size: 18px;
+  cursor: pointer;
+  transition: transform 0.12s, opacity 0.15s;
+}
+.modal-actions button:active { transform: scale(0.96); }
+#modal-confirm { background: #e74c3c; color: #fff; }
+#modal-confirm:hover { opacity: 0.88; }
+#modal-cancel { background: var(--btn-hover); color: var(--btn-text); }
+#modal-cancel:hover { opacity: 0.75; }
+
+/* ── Board ── */
 .container {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -44,111 +272,169 @@ body {
   margin: 30px auto;
   row-gap: 50px;
   column-gap: 5%;
+  min-height: calc(100vh - 140px);
 }
 
-#create {
-  position: relative;
-  margin-top: 15px;
-  width: 300px;
-  height: 300px;
-  background: var(--blue);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 6em;
-  cursor: pointer;
-  border-radius: 2px;
-  box-shadow: var(--pink) 5px -5px, var(--green) 10px -10px,
-    var(--yellow) 15px -15px, var(--purple) 20px -20px,
-    rgba(0, 0, 0, 0.35) 0px 54px 55px, rgba(0, 0, 0, 0.22) 0px -12px 30px,
-    rgba(0, 0, 0, 0.27) 0px 32px 33px, rgba(0, 0, 0, 0.19) 0px -3px 25px;
-}
-
-#create i {
-  color: #fff;
-}
-
+/* ── Nota ── */
 .note {
   position: relative;
-  color: #131313;
+  color: var(--note-text);
   width: 300px;
   height: 300px;
-  padding: 20px;
+  /* padding-bottom amplio: espacio para char-count y color-picker */
+  padding: 20px 20px 30px;
   border-radius: 2px;
-  box-shadow: rgba(0, 0, 0, 0.16) 0px 3px 6px, rgba(0, 0, 0, 0.23) 0px 3px 6px;
+  box-shadow: rgba(0,0,0,0.16) 0px 3px 6px, rgba(0,0,0,0.23) 0px 3px 6px;
+  transition: box-shadow 0.22s, transform 0.22s;
+  cursor: grab;
+  user-select: none;
+  animation: noteIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.note:hover {
+  box-shadow: rgba(0,0,0,0.22) 0px 8px 18px, rgba(0,0,0,0.18) 0px 4px 8px;
+  transform: translateY(-3px) rotate(0.5deg);
+}
+.note.dragging {
+  opacity: 0.82;
+  cursor: grabbing;
+  transform: scale(1.04) rotate(2deg);
+  box-shadow: 0 20px 50px var(--drag-shadow);
+  z-index: 50;
+  transition: none;
+}
+.note.removing {
+  animation: noteOut 0.25s ease forwards;
+  pointer-events: none;
 }
 
-.note img {
+/* ── Chinche ── */
+.note .thumbtack {
   position: absolute;
-  width: 50px;
-  border-radius: 50%;
-  top: -15px;
-  left: 125px;
+  width: 46px;
+  height: 46px;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
   cursor: pointer;
+  transition: transform 0.18s, filter 0.18s;
+  z-index: 2;
+}
+.note .thumbtack:hover {
+  transform: translateX(-50%) scale(1.15) rotate(-15deg);
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
 }
 
+/* ── Selector de color ── */
+.note .color-picker {
+  position: absolute;
+  bottom: 7px;
+  right: 8px;
+  display: flex;
+  gap: 5px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.note:hover .color-picker,
+.note:focus-within .color-picker { opacity: 1; }
+
+.color-dot {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.20);
+  cursor: pointer;
+  background-clip: padding-box;
+  outline: none;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.color-dot:hover         { transform: scale(1.32); border-color: rgba(0,0,0,0.45); }
+.color-dot:focus-visible { outline: 2px solid #444; outline-offset: 2px; }
+
+/* ── Área de texto ──
+   La caja tiene overflow:hidden siempre.
+   El JS bloquea el input antes de que haya desborde real,
+   usando un umbral de seguridad (lineHeight) para que la última
+   línea nunca quede cortada. ── */
 .note .input {
   outline: none;
   width: 100%;
   height: 100%;
   font-family: "Caveat", cursive;
   font-size: 29px;
-  overflow-y: hidden;
+  overflow: hidden; /* nunca scroll */
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+  line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
-.note .input:focus {
-  overflow-y: auto;
+/* ── Contador de caracteres ── */
+.note .char-count {
+  position: absolute;
+  bottom: 7px;
+  left: 10px;
+  font-family: "Caveat", cursive;
+  font-size: 12px;
+  color: var(--char-ok);
+  pointer-events: none;
+  transition: color 0.2s;
+}
+.note .char-count.warning { color: #e67e22; }
+.note .char-count.full    { color: #e74c3c; font-weight: 700; }
+
+/* ── Animaciones ── */
+@keyframes noteIn {
+  from { opacity: 0; transform: scale(0.7) rotate(-3deg); }
+  to   { opacity: 1; transform: scale(1)   rotate(0deg);  }
+}
+@keyframes noteOut {
+  from { opacity: 1; transform: scale(1);   }
+  to   { opacity: 0; transform: scale(0.6) rotate(5deg); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; } to { opacity: 1; }
+}
+@keyframes popIn {
+  from { transform: scale(0.82); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
 }
 
-@media screen and (max-width: 800px) {
-  body {
-    padding: 50px 25px;
-  }
-  #create {
-    width: 250px;
-    height: 250px;
-    font-size: 5em;
-  }
-  .note {
-    width: 250px;
-    height: 250px;
-  }
-  .note img {
-    left: 100px;
-  }
-  .note .input {
-    font-size: 25px;
-  }
+/* ════════════════════════════
+   RESPONSIVE
+   · ≤1024px  tablet landscape
+   · ≤640px   tablet portrait / móvil grande
+   · ≤400px   móvil pequeño
+   · ≤320px   móvil muy pequeño
+   ════════════════════════════ */
+@media screen and (max-width: 1024px) {
+  .container { column-gap: 4%; }
 }
-
-@media screen and (max-width: 574px) {
-  html {
-    overflow-y: auto;
-  }
+@media screen and (max-width: 640px) {
+  body { padding-top: 66px; }
+  .toolbar { padding: 6px 12px; gap: 4px; }
+  .toolbar button span { display: none; }
+  .toolbar button { padding: 7px 10px; }
+  .toolbar button i { font-size: 15px; }
+  .note { width: 260px; height: 260px; }
+  .note .thumbtack { width: 40px; height: 40px; }
+  .note .input { font-size: 26px; }
+  .container { row-gap: 40px; column-gap: 3%; width: 95%; }
 }
-
-@media screen and (max-width: 574px) {
-  #create {
-    margin-left: -15px;
-  }
+@media screen and (max-width: 400px) {
+  body { padding-top: 60px; }
+  .note { width: 220px; height: 220px; }
+  .note .thumbtack { width: 36px; height: 36px; top: -12px; }
+  .note .input { font-size: 22px; }
+  .note .char-count { font-size: 11px; }
+  .container { row-gap: 36px; width: 100%; margin: 20px auto; }
 }
-
-@media screen and (max-width: 300px) {
-  #create {
-    width: 200px;
-    height: 200px;
-    font-size: 4em;
-  }
-  .note {
-    width: 200px;
-    height: 200px;
-  }
-  .note img {
-    left: 80px;
-    top: -10px;
-    width: 40px;
-  }
-  .note .input {
-    font-size: 20px;
-  }
+@media screen and (max-width: 320px) {
+  .note { width: 200px; height: 200px; }
+  .note .input { font-size: 20px; }
+  .modal { padding: 20px 18px; }
+}
+@media screen and (max-width: 640px) {
+  html, body { overflow-x: hidden; }
 }
