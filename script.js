@@ -1,8 +1,6 @@
 // ── NoteManager ──────────────────────────────────────────────────────────────
 class NoteManager {
   constructor() {
-    // Nombres de las variables CSS — el valor real lo resuelve el navegador
-    // según el tema activo (claro/oscuro) via @media prefers-color-scheme
     this.colors  = ["blue", "pink", "green", "yellow", "purple"];
     this.board   = document.getElementById("board");
     this.counter = document.getElementById("note-count");
@@ -24,23 +22,21 @@ class NoteManager {
     return this.colors[Math.floor(Math.random() * this.colors.length)];
   }
 
-  // Convierte un nombre de color ("blue") al valor CSS aplicable ("var(--blue)")
+  // Rotación aleatoria entre -2° y +2° para efecto de tablero real.
+  // Devuelve un string numérico SIN unidad — la unidad la agrega el CSS.
+  _randomRotation() {
+    return (Math.random() * 4 - 2).toFixed(2);
+  }
+
   _colorVar(name) {
     return `var(--${name})`;
   }
 
-  // Extrae el nombre de color desde cualquier formato:
-  // "blue" → "blue"
-  // "var(--blue)" → "blue"
-  // hex/rgb legacy → nombre mapeado
   _colorName(stored) {
     if (!stored) return "yellow";
-    // Nombre limpio directo (formato nuevo)
     if (this.colors.includes(stored)) return stored;
-    // var(--blue)
     const varMatch = stored.match(/^var\(--(\w+)\)$/);
     if (varMatch && this.colors.includes(varMatch[1])) return varMatch[1];
-    // Migración desde hex/rgb guardados en versiones anteriores
     const legacyMap = {
       "#b5e9ec": "blue",  "rgb(181, 233, 236)": "blue",
       "#fec3dd": "pink",  "rgb(254, 195, 221)": "pink",
@@ -73,26 +69,17 @@ class NoteManager {
   }
 
   // ── Cálculo de líneas visuales ─────────────────────────────────────────────
-  // Lee el font-size computado y lo multiplica por el line-height del CSS (1.4).
-  // Usar getComputedStyle garantiza que funciona en todos los navegadores
-  // independientemente de breakpoints o zoom del sistema.
 
   _getLineHeight(textArea) {
     const fs = parseFloat(getComputedStyle(textArea).fontSize);
     return Math.round(fs * 1.4);
   }
 
-  // Cantidad máxima de líneas que caben sin scroll,
-  // basada en la altura interior real del elemento.
   _getMaxLines(textArea) {
     const lh = this._getLineHeight(textArea);
     return Math.max(1, Math.floor(textArea.clientHeight / lh));
   }
 
-  // Líneas visuales que ocupa el contenido actual.
-  // Usamos un nodo <span> interno para medir solo la altura del contenido,
-  // evitando que el padding del contenedor infle el scrollHeight.
-  // Cross-browser: Chrome, Firefox, Safari, Edge.
   _getCurrentLines(textArea) {
     const lh = this._getLineHeight(textArea);
     const ruler = document.createElement("span");
@@ -101,8 +88,6 @@ class NoteManager {
     textArea.appendChild(ruler);
     const h = ruler.getBoundingClientRect().height;
     ruler.remove();
-    // Usar round con tolerancia de 2px para no penalizar subpíxeles
-    // cuando el contenido llena exactamente el contenedor
     return Math.max(1, Math.round((h + 2) / lh));
   }
 
@@ -110,9 +95,6 @@ class NoteManager {
 
   _setupLineLimit(textArea, lineCount) {
     const saveDebounced = this._debounce(() => this.saveNotes(), 400);
-
-    // snapshot para restaurar en caso de desborde (compatible con Safari,
-    // donde execCommand("undo") está deprecado y puede fallar)
     let _snapshot = textArea.innerHTML;
 
     const isFull = () =>
@@ -128,7 +110,6 @@ class NoteManager {
       else if (pct >= 0.85)  lineCount.classList.add("warning");
     };
 
-    // Restaurar al snapshot y reposicionar el cursor al final del texto
     const _restore = () => {
       textArea.innerHTML = _snapshot;
       const range = document.createRange();
@@ -139,26 +120,21 @@ class NoteManager {
       sel.addRange(range);
     };
 
-    // Teclas que siempre se permiten aunque esté lleno
     const ALLOWED_KEYS = new Set([
       "Backspace","Delete","ArrowLeft","ArrowRight",
       "ArrowUp","ArrowDown","Home","End","Escape","Tab"
     ]);
 
-    // Primera línea de defensa: bloquear antes de que el carácter se inserte
     textArea.addEventListener("keydown", (e) => {
       if (ALLOWED_KEYS.has(e.key) || e.ctrlKey || e.metaKey) return;
       if (isFull()) e.preventDefault();
     });
 
-    // Segunda línea: beforeinput (Chrome, Edge, Safari modernos)
     textArea.addEventListener("beforeinput", (e) => {
-      if (!e.data) return; // deja pasar borrado, etc.
+      if (!e.data) return;
       if (isFull()) e.preventDefault();
     });
 
-    // Actualizar snapshot cuando el contenido cambia válidamente,
-    // y restaurar si de algún modo (dictado, autocompletar móvil) se desbordó
     textArea.addEventListener("input", () => {
       if (this._getCurrentLines(textArea) > this._getMaxLines(textArea)) {
         _restore();
@@ -169,18 +145,12 @@ class NoteManager {
       saveDebounced();
     });
 
-    // Paste: insertar solo texto plano; deshacer si desborda
     textArea.addEventListener("paste", (e) => {
       e.preventDefault();
       if (isFull()) return;
-
-      const pasted = (e.clipboardData || window.clipboardData)
-        .getData("text/plain");
-
-      // Guardar snapshot previo al paste para poder revertir
+      const pasted = (e.clipboardData || window.clipboardData).getData("text/plain");
       const preSnapshot = textArea.innerHTML;
       document.execCommand("insertText", false, pasted);
-
       if (this._getCurrentLines(textArea) > this._getMaxLines(textArea)) {
         textArea.innerHTML = preSnapshot;
         const range = document.createRange();
@@ -196,7 +166,6 @@ class NoteManager {
       saveDebounced();
     });
 
-    // Actualizar el snapshot al enfocar (para tener siempre un punto de retorno válido)
     textArea.addEventListener("focus", () => {
       _snapshot = textArea.innerHTML;
       updateCount();
@@ -207,14 +176,19 @@ class NoteManager {
 
   // ── Crear nota ─────────────────────────────────────────────────────────────
 
-  createNote(content = "", color = this._randomColor(), id = crypto.randomUUID()) {
+  createNote(content = "", color = this._randomColor(), id = crypto.randomUUID(), rotation = null) {
     const note = document.createElement("div");
     note.classList.add("note");
-    // color puede ser un nombre ("blue") o un valor legacy; normalizamos siempre
+
     const colorName = this._colorName(color);
     note.style.background = this._colorVar(colorName);
-    note.dataset.color = colorName;
-    note.dataset.id = id;
+    note.dataset.color    = colorName;
+    note.dataset.id       = id;
+
+    const rot = parseFloat(rotation) || parseFloat(this._randomRotation());
+    note.dataset.rotation = rot;
+    note.style.setProperty("--rotation", `${rot}deg`);
+
     note.setAttribute("role", "article");
     note.setAttribute("aria-label", "Nota adhesiva");
 
@@ -243,15 +217,11 @@ class NoteManager {
     textArea.setAttribute("aria-multiline", "true");
     textArea.addEventListener("mousedown",  (e) => e.stopPropagation());
     textArea.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
-
-    // El contenido se asigna como texto plano para evitar HTML enriquecido
-    // de sesiones anteriores o de paste. No hace falta truncar aquí porque
-    // _setupLineLimit detecta y restaura si el contenido cargado desborda.
     textArea.innerText = this._sanitizeContent(content);
 
-    // Contador de líneas
+    // Contador de líneas (oculto visualmente, usado internamente)
     const lineCount = document.createElement("span");
-    lineCount.classList.add("char-count"); // reutiliza los estilos existentes
+    lineCount.classList.add("char-count");
 
     // Selector de colores
     const picker = document.createElement("div");
@@ -281,16 +251,12 @@ class NoteManager {
     note.appendChild(picker);
     this.board.appendChild(note);
 
-    // Diferir _setupLineLimit un frame para que el navegador haya calculado
-    // el layout real antes de leer clientHeight / getBoundingClientRect
     requestAnimationFrame(() => this._setupLineLimit(textArea, lineCount));
     this._updateCounter();
     return note;
   }
 
   // ── Sanitizar contenido al cargar ─────────────────────────────────────────
-  // Extrae solo texto plano descartando cualquier HTML enriquecido
-  // que pueda haberse guardado en sesiones anteriores.
 
   _sanitizeContent(html) {
     const tmp = document.createElement("div");
@@ -333,8 +299,6 @@ class NoteManager {
   }
 
   // ── Guardar / Cargar ───────────────────────────────────────────────────────
-  // Se guarda el texto plano del innerText. Ya no es necesario truncar
-  // por caracteres porque el límite de líneas lo garantiza en tiempo real.
 
   saveNotes() {
     const notes = [];
@@ -342,9 +306,10 @@ class NoteManager {
       const raw  = note.querySelector(".input").innerText || "";
       const text = raw.replace(/\n$/, "");
       notes.push({
-        id:      note.dataset.id,
-        content: text,
-        color:   note.dataset.color,   // nombre ("blue", "pink"…), no hex
+        id:       note.dataset.id,
+        content:  text,
+        color:    note.dataset.color,
+        rotation: note.dataset.rotation,
       });
     });
     localStorage.setItem("sticky-notes", JSON.stringify(notes));
@@ -354,7 +319,9 @@ class NoteManager {
     const saved = localStorage.getItem("sticky-notes");
     if (!saved) return;
     try {
-      JSON.parse(saved).forEach(n => this.createNote(n.content, n.color, n.id));
+      JSON.parse(saved).forEach(n =>
+        this.createNote(n.content, n.color, n.id, n.rotation ?? this._randomRotation())
+      );
     } catch {
       localStorage.removeItem("sticky-notes");
     }
@@ -376,7 +343,10 @@ class NoteManager {
     document.getElementById("create").addEventListener("click", () => {
       const note = this.createNote();
       this.saveNotes();
-      requestAnimationFrame(() => note.querySelector(".input")?.focus());
+      requestAnimationFrame(() => {
+        note.scrollIntoView({ behavior: "smooth", block: "center" });
+        note.querySelector(".input")?.focus();
+      });
     });
   }
 
