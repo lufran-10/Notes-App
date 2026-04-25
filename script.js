@@ -150,15 +150,24 @@ class NoteManager {
       if (isFull()) return;
       const pasted = (e.clipboardData || window.clipboardData).getData("text/plain");
       const preSnapshot = textArea.innerHTML;
-      document.execCommand("insertText", false, pasted);
-      if (this._getCurrentLines(textArea) > this._getMaxLines(textArea)) {
-        textArea.innerHTML = preSnapshot;
-        const range = document.createRange();
-        const sel   = window.getSelection();
-        range.selectNodeContents(textArea);
+      // Usar API moderna en vez del deprecado execCommand("insertText")
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount) {
+        const range = sel.getRangeAt(0);
+        range.deleteContents();
+        range.insertNode(document.createTextNode(pasted));
         range.collapse(false);
         sel.removeAllRanges();
         sel.addRange(range);
+      }
+      if (this._getCurrentLines(textArea) > this._getMaxLines(textArea)) {
+        textArea.innerHTML = preSnapshot;
+        const range = document.createRange();
+        const sel2  = window.getSelection();
+        range.selectNodeContents(textArea);
+        range.collapse(false);
+        sel2.removeAllRanges();
+        sel2.addRange(range);
       } else {
         _snapshot = textArea.innerHTML;
       }
@@ -176,11 +185,10 @@ class NoteManager {
 
   // ── Crear nota ─────────────────────────────────────────────────────────────
 
-  createNote(content = "", color = this._randomColor(), id = crypto.randomUUID(), rotation = null) {
+  createNote(content = "", color = null, id = crypto.randomUUID(), rotation = null) {
+    const colorName = this._colorName(color ?? this._randomColor());
     const note = document.createElement("div");
     note.classList.add("note");
-
-    const colorName = this._colorName(color);
     note.style.background = this._colorVar(colorName);
     note.dataset.color    = colorName;
     note.dataset.id       = id;
@@ -330,11 +338,12 @@ class NoteManager {
   // ── Borrar todo ────────────────────────────────────────────────────────────
 
   clearAll() {
+    localStorage.removeItem("sticky-notes");
     [...this.board.querySelectorAll(".note")].forEach(n => {
       n.classList.add("removing");
       n.addEventListener("animationend", () => n.remove(), { once: true });
     });
-    setTimeout(() => { this.saveNotes(); this._updateCounter(); }, 300);
+    setTimeout(() => this._updateCounter(), 300);
   }
 
   // ── Bindings ───────────────────────────────────────────────────────────────

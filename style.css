@@ -378,12 +378,12 @@ body {
 
 /* ── Animaciones ── */
 @keyframes noteIn {
-  from { opacity: 0; transform: scale(0.7) rotate(-3deg); }
-  to   { opacity: 1; transform: scale(1)   rotate(0deg);  }
+  from { opacity: 0; transform: scale(0.7) rotate(var(--rotation, 0deg)); }
+  to   { opacity: 1; transform: scale(1)   rotate(var(--rotation, 0deg)); }
 }
 @keyframes noteOut {
-  from { opacity: 1; transform: scale(1);   }
-  to   { opacity: 0; transform: scale(0.6) rotate(5deg); }
+  from { opacity: 1; transform: scale(1)   rotate(var(--rotation, 0deg)); }
+  to   { opacity: 0; transform: scale(0.6) rotate(var(--rotation, 0deg)); }
 }
 @keyframes fadeIn {
   from { opacity: 0; } to { opacity: 1; }
@@ -401,6 +401,7 @@ body {
 }
 @media screen and (max-width: 640px) {
   body { padding-top: 66px; }
+  html, body { overflow-x: hidden; }
   .toolbar { padding: 6px 12px; gap: 4px; }
   .toolbar button span { display: none; }
   .toolbar button { padding: 7px 10px; }
@@ -422,7 +423,4 @@ body {
   .note { width: 200px; height: 200px; }
   .note .input { font-size: 20px; }
   .modal { padding: 20px 18px; }
-}
-@media screen and (max-width: 640px) {
-  html, body { overflow-x: hidden; }
 }
