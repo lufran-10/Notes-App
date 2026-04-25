@@ -43,99 +43,134 @@ class NoteManager {
     this.board.querySelectorAll(".thumbtack").forEach(img => { img.src = src; });
   }
 
-  // ── Límite de caracteres por breakpoint ────────────────────────────────────
-  // Calculado con el carácter más ancho de Caveat como referencia,
-  // siendo conservadores para que el texto nunca desborde visualmente.
-  // El límite se recalcula cada vez que se necesita, por si el usuario
-  // redimensiona la ventana entre sesiones.
+  // ── Cálculo de líneas visuales ─────────────────────────────────────────────
+  // Lee el font-size computado y lo multiplica por el line-height del CSS (1.4).
+  // Usar getComputedStyle garantiza que funciona en todos los navegadores
+  // independientemente de breakpoints o zoom del sistema.
 
-  _getCharLimit() {
-    const w = window.innerWidth;
-    if (w <= 320) return 100;
-    if (w <= 400) return 120;
-    if (w <= 640) return 160;
-    return 200;
+  _getLineHeight(textArea) {
+    const fs = parseFloat(getComputedStyle(textArea).fontSize);
+    return Math.round(fs * 1.4);
   }
 
-  // ── Configurar límite de caracteres ───────────────────────────────────────
+  // Cantidad máxima de líneas que caben sin scroll,
+  // basada en la altura interior real del elemento.
+  _getMaxLines(textArea) {
+    const lh = this._getLineHeight(textArea);
+    return Math.max(1, Math.floor(textArea.clientHeight / lh));
+  }
 
-  _setupCharLimit(textArea, charCount) {
+  // Líneas visuales que ocupa el contenido actual.
+  // Usamos un nodo <span> interno para medir solo la altura del contenido,
+  // evitando que el padding del contenedor infle el scrollHeight.
+  // Cross-browser: Chrome, Firefox, Safari, Edge.
+  _getCurrentLines(textArea) {
+    const lh = this._getLineHeight(textArea);
+    const ruler = document.createElement("span");
+    ruler.style.cssText = "display:block;visibility:hidden;pointer-events:none;";
+    ruler.innerHTML = textArea.innerHTML || "<br>";
+    textArea.appendChild(ruler);
+    const h = ruler.getBoundingClientRect().height;
+    ruler.remove();
+    // Usar round con tolerancia de 2px para no penalizar subpíxeles
+    // cuando el contenido llena exactamente el contenedor
+    return Math.max(1, Math.round((h + 2) / lh));
+  }
+
+  // ── Configurar límite de líneas ────────────────────────────────────────────
+
+  _setupLineLimit(textArea, lineCount) {
     const saveDebounced = this._debounce(() => this.saveNotes(), 400);
 
-    const getLen  = () => textArea.innerText.replace(/\n$/, "").length;
-    const limit   = () => this._getCharLimit();
+    // snapshot para restaurar en caso de desborde (compatible con Safari,
+    // donde execCommand("undo") está deprecado y puede fallar)
+    let _snapshot = textArea.innerHTML;
+
+    const isFull = () =>
+      this._getCurrentLines(textArea) > this._getMaxLines(textArea);
 
     const updateCount = () => {
-      const len = getLen();
-      const max = limit();
-      const pct = len / max;
-      charCount.textContent = `${len}/${max}`;
-      charCount.classList.remove("warning", "full");
-      if (pct >= 1)    charCount.classList.add("full");
-      else if (pct >= 0.85) charCount.classList.add("warning");
+      const cur = this._getCurrentLines(textArea);
+      const max = this._getMaxLines(textArea);
+      const pct = cur / max;
+      lineCount.textContent = `${cur}/${max}`;
+      lineCount.classList.remove("warning", "full");
+      if (pct >= 1)          lineCount.classList.add("full");
+      else if (pct >= 0.85)  lineCount.classList.add("warning");
     };
 
-    // Bloquear escritura cuando se alcanza el límite
+    // Restaurar al snapshot y reposicionar el cursor al final del texto
+    const _restore = () => {
+      textArea.innerHTML = _snapshot;
+      const range = document.createRange();
+      const sel   = window.getSelection();
+      range.selectNodeContents(textArea);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    };
+
+    // Teclas que siempre se permiten aunque esté lleno
     const ALLOWED_KEYS = new Set([
-      "Backspace","Delete","ArrowLeft","ArrowRight","ArrowUp","ArrowDown",
-      "Home","End","Escape","Tab"
+      "Backspace","Delete","ArrowLeft","ArrowRight",
+      "ArrowUp","ArrowDown","Home","End","Escape","Tab"
     ]);
 
+    // Primera línea de defensa: bloquear antes de que el carácter se inserte
     textArea.addEventListener("keydown", (e) => {
-      if (ALLOWED_KEYS.has(e.key)) return;
-      if (e.ctrlKey || e.metaKey) return; // Ctrl+A, Ctrl+C, Ctrl+Z, etc.
-      if (getLen() >= limit()) {
-        e.preventDefault();
-      }
+      if (ALLOWED_KEYS.has(e.key) || e.ctrlKey || e.metaKey) return;
+      if (isFull()) e.preventDefault();
     });
 
-    // Doble seguridad: beforeinput (Chrome, Edge, Safari)
+    // Segunda línea: beforeinput (Chrome, Edge, Safari modernos)
     textArea.addEventListener("beforeinput", (e) => {
-      if (!e.data) return;
-      if (getLen() >= limit()) {
-        e.preventDefault();
-      }
+      if (!e.data) return; // deja pasar borrado, etc.
+      if (isFull()) e.preventDefault();
     });
 
-    // Red de seguridad para dictado / autocompletar en móvil
+    // Actualizar snapshot cuando el contenido cambia válidamente,
+    // y restaurar si de algún modo (dictado, autocompletar móvil) se desbordó
     textArea.addEventListener("input", () => {
-      const max = limit();
-      if (getLen() > max) {
-        // Truncar preservando la posición del cursor
-        const sel    = window.getSelection();
-        const offset = sel.anchorOffset;
-        const node   = textArea.firstChild;
-        textArea.innerText = textArea.innerText.slice(0, max);
-        // Reposicionar cursor
-        try {
-          if (node && textArea.firstChild) {
-            const range = document.createRange();
-            range.setStart(textArea.firstChild, Math.min(offset, max));
-            range.collapse(true);
-            sel.removeAllRanges();
-            sel.addRange(range);
-          }
-        } catch (_) {}
+      if (this._getCurrentLines(textArea) > this._getMaxLines(textArea)) {
+        _restore();
+      } else {
+        _snapshot = textArea.innerHTML;
       }
       updateCount();
       saveDebounced();
     });
 
-    // Paste: insertar solo texto plano y truncar si supera el límite
+    // Paste: insertar solo texto plano; deshacer si desborda
     textArea.addEventListener("paste", (e) => {
       e.preventDefault();
-      const max       = limit();
-      const current   = getLen();
-      const available = Math.max(0, max - current);
-      if (available === 0) return;
+      if (isFull()) return;
 
       const pasted = (e.clipboardData || window.clipboardData)
-        .getData("text/plain")
-        .slice(0, available);
+        .getData("text/plain");
 
+      // Guardar snapshot previo al paste para poder revertir
+      const preSnapshot = textArea.innerHTML;
       document.execCommand("insertText", false, pasted);
+
+      if (this._getCurrentLines(textArea) > this._getMaxLines(textArea)) {
+        textArea.innerHTML = preSnapshot;
+        const range = document.createRange();
+        const sel   = window.getSelection();
+        range.selectNodeContents(textArea);
+        range.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } else {
+        _snapshot = textArea.innerHTML;
+      }
       updateCount();
       saveDebounced();
+    });
+
+    // Actualizar el snapshot al enfocar (para tener siempre un punto de retorno válido)
+    textArea.addEventListener("focus", () => {
+      _snapshot = textArea.innerHTML;
+      updateCount();
     });
 
     updateCount();
@@ -177,14 +212,14 @@ class NoteManager {
     textArea.addEventListener("mousedown",  (e) => e.stopPropagation());
     textArea.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
 
-    // Truncar el contenido cargado si supera el límite actual
-    const max     = this._getCharLimit();
-    const trimmed = this._truncateHTML(content, max);
-    textArea.innerHTML = trimmed;
+    // El contenido se asigna como texto plano para evitar HTML enriquecido
+    // de sesiones anteriores o de paste. No hace falta truncar aquí porque
+    // _setupLineLimit detecta y restaura si el contenido cargado desborda.
+    textArea.innerText = this._sanitizeContent(content);
 
-    // Contador
-    const charCount = document.createElement("span");
-    charCount.classList.add("char-count");
+    // Contador de líneas
+    const lineCount = document.createElement("span");
+    lineCount.classList.add("char-count"); // reutiliza los estilos existentes
 
     // Selector de colores
     const picker = document.createElement("div");
@@ -209,24 +244,25 @@ class NoteManager {
 
     note.appendChild(img);
     note.appendChild(textArea);
-    note.appendChild(charCount);
+    note.appendChild(lineCount);
     note.appendChild(picker);
     this.board.appendChild(note);
 
-    this._setupCharLimit(textArea, charCount);
+    // Diferir _setupLineLimit un frame para que el navegador haya calculado
+    // el layout real antes de leer clientHeight / getBoundingClientRect
+    requestAnimationFrame(() => this._setupLineLimit(textArea, lineCount));
     this._updateCounter();
     return note;
   }
 
-  // ── Truncar HTML preservando etiquetas básicas ─────────────────────────────
-  // Extrae solo el texto plano y lo recorta; descarta cualquier HTML complejo
-  // que pueda haberse colado por paste enriquecido en sesiones anteriores.
+  // ── Sanitizar contenido al cargar ─────────────────────────────────────────
+  // Extrae solo texto plano descartando cualquier HTML enriquecido
+  // que pueda haberse guardado en sesiones anteriores.
 
-  _truncateHTML(html, max) {
-    const tmp  = document.createElement("div");
+  _sanitizeContent(html) {
+    const tmp = document.createElement("div");
     tmp.innerHTML = html;
-    const text = tmp.innerText || tmp.textContent || "";
-    return text.slice(0, max);
+    return tmp.innerText || tmp.textContent || "";
   }
 
   // ── Eliminar nota ─────────────────────────────────────────────────────────
@@ -264,15 +300,14 @@ class NoteManager {
   }
 
   // ── Guardar / Cargar ───────────────────────────────────────────────────────
-  // Al guardar se trunca el texto al límite actual para que nunca se
-  // guarde más de lo que es visible en pantalla.
+  // Se guarda el texto plano del innerText. Ya no es necesario truncar
+  // por caracteres porque el límite de líneas lo garantiza en tiempo real.
 
   saveNotes() {
-    const max   = this._getCharLimit();
     const notes = [];
     this.board.querySelectorAll(".note").forEach(note => {
       const raw  = note.querySelector(".input").innerText || "";
-      const text = raw.replace(/\n$/, "").slice(0, max);
+      const text = raw.replace(/\n$/, "");
       notes.push({
         id:      note.dataset.id,
         content: text,
