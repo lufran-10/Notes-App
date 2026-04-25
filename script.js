@@ -300,9 +300,12 @@ class NoteManager {
     note.addEventListener("dragover", (e) => {
       e.preventDefault();
       if (!this._dragEl || this._dragEl === note) return;
-      const rect = note.getBoundingClientRect();
-      const mid  = rect.left + rect.width / 2;
-      this.board.insertBefore(this._dragEl, e.clientX < mid ? note : note.nextSibling);
+      const rect   = note.getBoundingClientRect();
+      const midX   = rect.left + rect.width  / 2;
+      const midY   = rect.top  + rect.height / 2;
+      // En grid usamos tanto X como Y para determinar si insertar antes o después
+      const before = e.clientY < midY || (e.clientY === midY && e.clientX < midX);
+      this.board.insertBefore(this._dragEl, before ? note : note.nextSibling);
     });
   }
 

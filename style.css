@@ -261,15 +261,14 @@ body {
 .container {
   position: relative;
   z-index: 1;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 300px);
   justify-content: center;
-  align-items: flex-start;
-  flex-wrap: wrap;
+  align-content: start;
+  gap: 50px 5%;
   width: 90%;
   max-width: 1500px;
   margin: 30px auto;
-  row-gap: 50px;
-  column-gap: 5%;
   min-height: calc(100vh - 140px);
   padding-bottom: 50px;
 }
@@ -397,7 +396,7 @@ body {
    RESPONSIVE
    ════════════════════════════ */
 @media screen and (max-width: 1024px) {
-  .container { column-gap: 4%; }
+  .container { gap: 50px 4%; }
 }
 @media screen and (max-width: 640px) {
   body { padding-top: 66px; }
@@ -409,7 +408,12 @@ body {
   .note { width: 260px; height: 260px; }
   .note .thumbtack { width: 40px; height: 40px; }
   .note .input { font-size: 26px; }
-  .container { row-gap: 40px; column-gap: 3%; width: 95%; }
+  .container {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    justify-items: center;
+    gap: 40px 3%;
+    width: 95%;
+  }
 }
 @media screen and (max-width: 400px) {
   body { padding-top: 60px; }
@@ -417,10 +421,17 @@ body {
   .note .thumbtack { width: 36px; height: 36px; top: -12px; }
   .note .input { font-size: 22px; }
   .note .char-count { font-size: 11px; }
-  .container { row-gap: 36px; width: 100%; margin: 20px auto; }
+  .container {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    justify-items: center;
+    gap: 36px 3%;
+    width: 100%;
+    margin: 20px auto;
+  }
 }
 @media screen and (max-width: 320px) {
   .note { width: 200px; height: 200px; }
   .note .input { font-size: 20px; }
   .modal { padding: 20px 18px; }
+  .container { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); justify-items: center; }
 }
