@@ -1,7 +1,9 @@
 // ── NoteManager ──────────────────────────────────────────────────────────────
 class NoteManager {
   constructor() {
-    this.colors  = ["#b5e9ec", "#fec3dd", "#bbe9ba", "#f9e558", "#ccaafe"];
+    // Nombres de las variables CSS — el valor real lo resuelve el navegador
+    // según el tema activo (claro/oscuro) via @media prefers-color-scheme
+    this.colors  = ["blue", "pink", "green", "yellow", "purple"];
     this.board   = document.getElementById("board");
     this.counter = document.getElementById("note-count");
     this._darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
@@ -20,6 +22,33 @@ class NoteManager {
 
   _randomColor() {
     return this.colors[Math.floor(Math.random() * this.colors.length)];
+  }
+
+  // Convierte un nombre de color ("blue") al valor CSS aplicable ("var(--blue)")
+  _colorVar(name) {
+    return `var(--${name})`;
+  }
+
+  // Extrae el nombre de color desde cualquier formato:
+  // "blue" → "blue"
+  // "var(--blue)" → "blue"
+  // hex/rgb legacy → nombre mapeado
+  _colorName(stored) {
+    if (!stored) return "yellow";
+    // Nombre limpio directo (formato nuevo)
+    if (this.colors.includes(stored)) return stored;
+    // var(--blue)
+    const varMatch = stored.match(/^var\(--(\w+)\)$/);
+    if (varMatch && this.colors.includes(varMatch[1])) return varMatch[1];
+    // Migración desde hex/rgb guardados en versiones anteriores
+    const legacyMap = {
+      "#b5e9ec": "blue",  "rgb(181, 233, 236)": "blue",
+      "#fec3dd": "pink",  "rgb(254, 195, 221)": "pink",
+      "#bbe9ba": "green", "rgb(187, 233, 186)": "green",
+      "#f9e558": "yellow","rgb(249, 229, 88)":  "yellow",
+      "#ccaafe": "purple","rgb(204, 170, 254)": "purple",
+    };
+    return legacyMap[stored] ?? "yellow";
   }
 
   _debounce(fn, ms) {
@@ -181,7 +210,10 @@ class NoteManager {
   createNote(content = "", color = this._randomColor(), id = crypto.randomUUID()) {
     const note = document.createElement("div");
     note.classList.add("note");
-    note.style.background = color;
+    // color puede ser un nombre ("blue") o un valor legacy; normalizamos siempre
+    const colorName = this._colorName(color);
+    note.style.background = this._colorVar(colorName);
+    note.dataset.color = colorName;
     note.dataset.id = id;
     note.setAttribute("role", "article");
     note.setAttribute("aria-label", "Nota adhesiva");
@@ -225,16 +257,17 @@ class NoteManager {
     const picker = document.createElement("div");
     picker.classList.add("color-picker");
     picker.setAttribute("aria-label", "Cambiar color de la nota");
-    this.colors.forEach(c => {
+    this.colors.forEach(name => {
       const dot = document.createElement("button");
       dot.classList.add("color-dot");
-      dot.style.background = c;
+      dot.style.background = this._colorVar(name);
       dot.title = "Cambiar a este color";
-      dot.setAttribute("aria-label", `Color ${c}`);
+      dot.setAttribute("aria-label", `Color ${name}`);
       dot.addEventListener("mousedown", (e) => e.stopPropagation());
       dot.addEventListener("click", (e) => {
         e.stopPropagation();
-        note.style.background = c;
+        note.style.background = this._colorVar(name);
+        note.dataset.color = name;
         this.saveNotes();
       });
       picker.appendChild(dot);
@@ -311,7 +344,7 @@ class NoteManager {
       notes.push({
         id:      note.dataset.id,
         content: text,
-        color:   note.style.background,
+        color:   note.dataset.color,   // nombre ("blue", "pink"…), no hex
       });
     });
     localStorage.setItem("sticky-notes", JSON.stringify(notes));

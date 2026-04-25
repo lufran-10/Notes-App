@@ -36,11 +36,11 @@
 /* ── Variables: modo oscuro ── */
 @media (prefers-color-scheme: dark) {
   :root {
-    --blue:   #4ab8be;
-    --green:  #5abf58;
-    --yellow: #d4c030;
-    --pink:   #e0799f;
-    --purple: #a87de0;
+    --blue:   #6DC0C5;
+    --green:  #78bb77;
+    --yellow: #CDBF65;
+    --pink:   #E18EA8;
+    --purple: #A288D3;
 
     --toolbar-bg:     rgba(28, 28, 28, 0.88);
     --toolbar-border: rgba(255,255,255,0.08);
@@ -271,6 +271,7 @@ body {
   row-gap: 50px;
   column-gap: 5%;
   min-height: calc(100vh - 140px);
+  padding-bottom: 50px;
 }
 
 /* ── Nota ── */
