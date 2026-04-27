@@ -289,11 +289,15 @@ class NoteManager {
     note.draggable = true;
     note.addEventListener("dragstart", (e) => {
       this._dragEl = note;
-      setTimeout(() => note.classList.add("dragging"), 0);
+      setTimeout(() => {
+        note.classList.add("dragging");
+        note.style.animation = "none"; // evita re-disparar noteIn al reinsertarse en el DOM
+      }, 0);
       e.dataTransfer.effectAllowed = "move";
     });
     note.addEventListener("dragend", () => {
       note.classList.remove("dragging");
+      note.style.animation = ""; // restaura la animación para usos futuros
       this._dragEl = null;
       this.saveNotes();
     });
