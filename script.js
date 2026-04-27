@@ -6,6 +6,7 @@ class NoteManager {
     this.counter = document.getElementById("note-count");
     this._darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
     this._dragEl = null;
+    this._notes  = []; // array interno para evitar querySelectorAll repetidos
 
     this._bindToolbar();
     this._bindModal();
@@ -52,20 +53,23 @@ class NoteManager {
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
   }
 
-  _updateCounter() {
-    const n = this.board.querySelectorAll(".note").length;
-    this.counter.textContent = n === 1 ? "1 nota" : `${n} notas`;
-  }
-
   _thumbtackSrc() {
     return this._darkMQ.matches
       ? "./images/black-thumbtack.png"
       : "./images/white-thumbtack.png";
   }
 
+  _updateCounter() {
+    const n = this._notes.length;
+    this.counter.textContent = n === 1 ? "1 nota" : `${n} notas`;
+  }
+
   _updateThumbTacks() {
     const src = this._thumbtackSrc();
-    this.board.querySelectorAll(".thumbtack").forEach(img => { img.src = src; });
+    this._notes.forEach(note => {
+      const img = note.querySelector(".thumbtack");
+      if (img) img.src = src;
+    });
   }
 
   // ── Cálculo de líneas visuales ─────────────────────────────────────────────
@@ -258,6 +262,7 @@ class NoteManager {
     note.appendChild(lineCount);
     note.appendChild(picker);
     this.board.appendChild(note);
+    this._notes.push(note); // registrar en array interno
 
     requestAnimationFrame(() => this._setupLineLimit(textArea, lineCount));
     this._updateCounter();
@@ -278,6 +283,7 @@ class NoteManager {
     note.classList.add("removing");
     note.addEventListener("animationend", () => {
       note.remove();
+      this._notes = this._notes.filter(n => n !== note);
       this.saveNotes();
       this._updateCounter();
     }, { once: true });
@@ -287,17 +293,19 @@ class NoteManager {
 
   _makeDraggable(note) {
     note.draggable = true;
+
+    // ── Drag & Drop mouse (desktop) ──
     note.addEventListener("dragstart", (e) => {
       this._dragEl = note;
       setTimeout(() => {
         note.classList.add("dragging");
-        note.style.animation = "none"; // evita re-disparar noteIn al reinsertarse en el DOM
+        note.style.animation = "none";
       }, 0);
       e.dataTransfer.effectAllowed = "move";
     });
     note.addEventListener("dragend", () => {
       note.classList.remove("dragging");
-      note.style.animation = ""; // restaura la animación para usos futuros
+      note.style.animation = "";
       this._dragEl = null;
       this.saveNotes();
     });
@@ -307,27 +315,72 @@ class NoteManager {
       const rect   = note.getBoundingClientRect();
       const midX   = rect.left + rect.width  / 2;
       const midY   = rect.top  + rect.height / 2;
-      // En grid usamos tanto X como Y para determinar si insertar antes o después
       const before = e.clientY < midY || (e.clientY === midY && e.clientX < midX);
       this.board.insertBefore(this._dragEl, before ? note : note.nextSibling);
+    });
+
+    // ── Drag & Drop touch (móvil) ──
+    let _touchStartX = 0, _touchStartY = 0;
+    let _touchMoved  = false;
+
+    note.addEventListener("touchstart", (e) => {
+      // Si el toque es en el textarea, no iniciar drag
+      if (e.target.closest(".input")) return;
+      const t = e.touches[0];
+      _touchStartX = t.clientX;
+      _touchStartY = t.clientY;
+      _touchMoved  = false;
+
+      this._dragEl = note;
+      note.style.animation = "none";
+    }, { passive: true });
+
+    note.addEventListener("touchmove", (e) => {
+      if (!this._dragEl) return;
+      _touchMoved = true;
+      note.classList.add("dragging");
+
+      const t = e.touches[0];
+      // Encontrar el elemento debajo del dedo (ocultando la nota arrastrada)
+      note.style.visibility = "hidden";
+      const below = document.elementFromPoint(t.clientX, t.clientY);
+      note.style.visibility = "";
+
+      const target = below?.closest(".note");
+      if (target && target !== note) {
+        const rect   = target.getBoundingClientRect();
+        const midY   = rect.top  + rect.height / 2;
+        const midX   = rect.left + rect.width  / 2;
+        const before = t.clientY < midY || (t.clientY === midY && t.clientX < midX);
+        this.board.insertBefore(note, before ? target : target.nextSibling);
+      }
+      // Actualizar posición en _notes para que saveNotes refleje el orden visual
+      this._notes = [...this.board.querySelectorAll(".note")];
+    }, { passive: true });
+
+    note.addEventListener("touchend", () => {
+      if (!this._dragEl) return;
+      note.classList.remove("dragging");
+      note.style.animation = "";
+      this._dragEl = null;
+      if (_touchMoved) this.saveNotes();
     });
   }
 
   // ── Guardar / Cargar ───────────────────────────────────────────────────────
 
   saveNotes() {
-    const notes = [];
-    this.board.querySelectorAll(".note").forEach(note => {
+    const data = this._notes.map(note => {
       const raw  = note.querySelector(".input").innerText || "";
       const text = raw.replace(/\n$/, "");
-      notes.push({
+      return {
         id:       note.dataset.id,
         content:  text,
         color:    note.dataset.color,
         rotation: note.dataset.rotation,
-      });
+      };
     });
-    localStorage.setItem("sticky-notes", JSON.stringify(notes));
+    localStorage.setItem("sticky-notes", JSON.stringify(data));
   }
 
   loadNotes() {
@@ -346,10 +399,11 @@ class NoteManager {
 
   clearAll() {
     localStorage.removeItem("sticky-notes");
-    [...this.board.querySelectorAll(".note")].forEach(n => {
+    this._notes.forEach(n => {
       n.classList.add("removing");
       n.addEventListener("animationend", () => n.remove(), { once: true });
     });
+    this._notes = [];
     setTimeout(() => this._updateCounter(), 300);
   }
 
@@ -372,7 +426,7 @@ class NoteManager {
     const cancel  = document.getElementById("modal-cancel");
 
     document.getElementById("clear-all").addEventListener("click", () => {
-      if (!this.board.querySelector(".note")) return;
+      if (this._notes.length === 0) return;
       overlay.hidden = false;
       confirm.focus();
     });
