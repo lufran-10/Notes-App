@@ -88,7 +88,11 @@ class NoteManager {
     const lh = this._getLineHeight(textArea);
     const ruler = document.createElement("span");
     ruler.style.cssText = "display:block;visibility:hidden;pointer-events:none;";
-    ruler.innerHTML = textArea.innerHTML || "<br>";
+    // Clonar nodos del DOM en vez de copiar innerHTML para evitar XSS
+    Array.from(textArea.childNodes).forEach(node =>
+      ruler.appendChild(node.cloneNode(true))
+    );
+    if (!ruler.hasChildNodes()) ruler.appendChild(document.createElement("br"));
     textArea.appendChild(ruler);
     const h = ruler.getBoundingClientRect().height;
     ruler.remove();
@@ -99,7 +103,21 @@ class NoteManager {
 
   _setupLineLimit(textArea, lineCount) {
     const saveDebounced = this._debounce(() => this.saveNotes(), 400);
-    let _snapshot = textArea.innerHTML;
+    // snapshot seguro: guardamos los nodos del DOM, no el HTML serializado
+    let _snapshotNodes = [];
+    const _saveSnapshot = () => {
+      _snapshotNodes = Array.from(textArea.childNodes).map(n => n.cloneNode(true));
+    };
+    const _restore = () => {
+      textArea.replaceChildren(..._snapshotNodes.map(n => n.cloneNode(true)));
+      const range = document.createRange();
+      const sel   = window.getSelection();
+      range.selectNodeContents(textArea);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    };
+    _saveSnapshot();
 
     const isFull = () =>
       this._getCurrentLines(textArea) > this._getMaxLines(textArea);
@@ -112,16 +130,6 @@ class NoteManager {
       lineCount.classList.remove("warning", "full");
       if (pct >= 1)          lineCount.classList.add("full");
       else if (pct >= 0.85)  lineCount.classList.add("warning");
-    };
-
-    const _restore = () => {
-      textArea.innerHTML = _snapshot;
-      const range = document.createRange();
-      const sel   = window.getSelection();
-      range.selectNodeContents(textArea);
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
     };
 
     const ALLOWED_KEYS = new Set([
@@ -143,7 +151,7 @@ class NoteManager {
       if (this._getCurrentLines(textArea) > this._getMaxLines(textArea)) {
         _restore();
       } else {
-        _snapshot = textArea.innerHTML;
+        _saveSnapshot();
       }
       updateCount();
       saveDebounced();
@@ -153,8 +161,8 @@ class NoteManager {
       e.preventDefault();
       if (isFull()) return;
       const pasted = (e.clipboardData || window.clipboardData).getData("text/plain");
-      const preSnapshot = textArea.innerHTML;
-      // Usar API moderna en vez del deprecado execCommand("insertText")
+      // Guardar snapshot previo al paste para poder revertir si desborda
+      const preNodes = Array.from(textArea.childNodes).map(n => n.cloneNode(true));
       const sel = window.getSelection();
       if (sel && sel.rangeCount) {
         const range = sel.getRangeAt(0);
@@ -165,7 +173,7 @@ class NoteManager {
         sel.addRange(range);
       }
       if (this._getCurrentLines(textArea) > this._getMaxLines(textArea)) {
-        textArea.innerHTML = preSnapshot;
+        textArea.replaceChildren(...preNodes.map(n => n.cloneNode(true)));
         const range = document.createRange();
         const sel2  = window.getSelection();
         range.selectNodeContents(textArea);
@@ -173,14 +181,14 @@ class NoteManager {
         sel2.removeAllRanges();
         sel2.addRange(range);
       } else {
-        _snapshot = textArea.innerHTML;
+        _saveSnapshot();
       }
       updateCount();
       saveDebounced();
     });
 
     textArea.addEventListener("focus", () => {
-      _snapshot = textArea.innerHTML;
+      _saveSnapshot();
       updateCount();
     });
 
@@ -270,10 +278,16 @@ class NoteManager {
   }
 
   // ── Sanitizar contenido al cargar ─────────────────────────────────────────
+  // Usa un TextNode en vez de innerHTML para nunca parsear HTML arbitrario.
+  // Esto evita que contenido malicioso guardado en localStorage
+  // sea interpretado por el navegador antes de extraer el texto plano.
 
-  _sanitizeContent(html) {
+  _sanitizeContent(raw) {
+    if (typeof raw !== "string") return "";
+    // Limitar longitud para evitar strings enormes desde localStorage manipulado
+    const clamped = raw.slice(0, 10000);
     const tmp = document.createElement("div");
-    tmp.innerHTML = html;
+    tmp.appendChild(document.createTextNode(clamped));
     return tmp.innerText || tmp.textContent || "";
   }
 
@@ -387,9 +401,16 @@ class NoteManager {
     const saved = localStorage.getItem("sticky-notes");
     if (!saved) return;
     try {
-      JSON.parse(saved).forEach(n =>
-        this.createNote(n.content, n.color, n.id, n.rotation ?? this._randomRotation())
-      );
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) throw new Error("formato inválido");
+      parsed.forEach(n => {
+        // Validar que cada campo sea del tipo esperado y tenga longitud razonable
+        const content  = typeof n.content  === "string" ? n.content.slice(0, 10000) : "";
+        const color    = typeof n.color    === "string" ? n.color                   : null;
+        const id       = typeof n.id       === "string" ? n.id.slice(0, 64)         : crypto.randomUUID();
+        const rotation = isFinite(parseFloat(n.rotation)) ? n.rotation              : this._randomRotation();
+        this.createNote(content, color, id, rotation);
+      });
     } catch {
       localStorage.removeItem("sticky-notes");
     }
