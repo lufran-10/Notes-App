@@ -198,6 +198,10 @@ class NoteManager {
   // ── Crear nota ─────────────────────────────────────────────────────────────
 
   createNote(content = "", color = null, id = crypto.randomUUID(), rotation = null) {
+    if (this._notes.length >= NoteManager.MAX_NOTES) {
+      this._showStorageWarning();
+      return null;
+    }
     const colorName = this._colorName(color ?? this._randomColor());
     const note = document.createElement("div");
     note.classList.add("note");
@@ -383,6 +387,9 @@ class NoteManager {
 
   // ── Guardar / Cargar ───────────────────────────────────────────────────────
 
+  static get MAX_NOTES() { return 50; }
+  static get MAX_STORAGE_BYTES() { return 4 * 1024 * 1024; } // 4MB — margen antes del límite de 5MB
+
   saveNotes() {
     const data = this._notes.map(note => {
       const raw  = note.querySelector(".input").innerText || "";
@@ -394,17 +401,58 @@ class NoteManager {
         rotation: note.dataset.rotation,
       };
     });
-    localStorage.setItem("sticky-notes", JSON.stringify(data));
+    try {
+      localStorage.setItem("sticky-notes", JSON.stringify(data));
+    } catch (e) {
+      if (e instanceof DOMException && (
+        e.name === "QuotaExceededError" ||
+        e.name === "NS_ERROR_DOM_QUOTA_REACHED"
+      )) {
+        this._showStorageWarning();
+      }
+    }
+  }
+
+  _showStorageWarning() {
+    // Reutilizar el modal existente con un mensaje diferente
+    const overlay = document.getElementById("modal-overlay");
+    const title   = document.getElementById("modal-title");
+    const confirm = document.getElementById("modal-confirm");
+    const cancel  = document.getElementById("modal-cancel");
+
+    const originalTitle   = title.textContent;
+    const originalConfirm = confirm.textContent;
+
+    title.textContent   = "No hay espacio para guardar. Eliminá algunas notas para continuar.";
+    confirm.textContent = "Entendido";
+    cancel.hidden       = true;
+
+    overlay.hidden = false;
+    confirm.focus();
+
+    const cleanup = () => {
+      overlay.hidden        = true;
+      title.textContent     = originalTitle;
+      confirm.textContent   = originalConfirm;
+      cancel.hidden         = false;
+      confirm.removeEventListener("click", cleanup);
+    };
+    confirm.addEventListener("click", cleanup, { once: true });
   }
 
   loadNotes() {
     const saved = localStorage.getItem("sticky-notes");
     if (!saved) return;
+    // Validar tamaño antes de parsear para evitar congelar el hilo principal
+    if (saved.length > NoteManager.MAX_STORAGE_BYTES) {
+      localStorage.removeItem("sticky-notes");
+      return;
+    }
     try {
       const parsed = JSON.parse(saved);
       if (!Array.isArray(parsed)) throw new Error("formato inválido");
-      parsed.forEach(n => {
-        // Validar que cada campo sea del tipo esperado y tenga longitud razonable
+      // Respetar el límite de notas también al cargar
+      parsed.slice(0, NoteManager.MAX_NOTES).forEach(n => {
         const content  = typeof n.content  === "string" ? n.content.slice(0, 10000) : "";
         const color    = typeof n.color    === "string" ? n.color                   : null;
         const id       = typeof n.id       === "string" ? n.id.slice(0, 64)         : crypto.randomUUID();
@@ -433,6 +481,7 @@ class NoteManager {
   _bindToolbar() {
     document.getElementById("create").addEventListener("click", () => {
       const note = this.createNote();
+      if (!note) return;
       this.saveNotes();
       requestAnimationFrame(() => {
         note.scrollIntoView({ behavior: "smooth", block: "center" });
