@@ -25,7 +25,7 @@ button, input, select, textarea {
   --toolbar-shadow: 0 2px 16px rgba(0,0,0,0.10);
   --btn-text:       #333;
   --btn-hover:      rgba(0,0,0,0.07);
-  --count-color:    #666;
+  --count-color:    #555;    /* era #666 — mejora ratio sobre toolbar semitransparente */
   --modal-bg:       #fff;
   --modal-overlay:  rgba(0,0,0,0.45);
   --note-text:      #131313;
@@ -52,7 +52,7 @@ button, input, select, textarea {
     --toolbar-shadow: 0 2px 16px rgba(0,0,0,0.50);
     --btn-text:       #eee;
     --btn-hover:      rgba(255,255,255,0.10);
-    --count-color:    #999;
+    --count-color:    #bbb;    /* era #999 — mejora ratio sobre toolbar oscura */
     --modal-bg:       #252525;
     --modal-overlay:  rgba(0,0,0,0.70);
     --note-text:      #111;
@@ -128,13 +128,17 @@ body {
 }
 .toolbar button:hover  { background: var(--btn-hover); }
 .toolbar button:active { transform: scale(0.95); }
+.toolbar button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
 .toolbar button i      { font-size: 14px; }
 #create    { font-weight: 600; }
 #clear-all { color: #c0392b; }
 #help-btn  { margin-left: 4px; font-size: 18px; }
 @media (prefers-color-scheme: dark) {
   #clear-all { color: #e57373; }
-  #help-btn  { color: #aaa; }
+  #help-btn  { color: #bbb; } /* era #aaa — mejora ratio sobre toolbar oscura */
 }
 
 .note-count {
@@ -185,7 +189,12 @@ body {
   border-radius: 6px;
   transition: background 0.15s;
 }
-.help-header button:hover { background: var(--btn-hover); }
+.help-header button:hover        { background: var(--btn-hover); }
+.help-header button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.help-header button:focus-visible { outline: 2px solid var(--help-text); outline-offset: 2px; }
 
 .help-list {
   list-style: none;
@@ -207,7 +216,7 @@ body {
   font-size: 13px;
   width: 16px;
   text-align: center;
-  color: #888;
+  color: #595959; /* era #888 (ratio 3.54:1, falla AA) — #595959 da 7:1, pasa AAA */
   flex-shrink: 0;
 }
 
@@ -254,11 +263,17 @@ body {
   cursor: pointer;
   transition: transform 0.12s, opacity 0.15s;
 }
-.modal-actions button:active { transform: scale(0.96); }
+.modal-actions button:active      { transform: scale(0.96); }
+.modal-actions button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
 #modal-confirm { background: #e74c3c; color: #fff; }
 #modal-confirm:hover { opacity: 0.88; }
+#modal-confirm:focus-visible { outline: 2px solid #c0392b; outline-offset: 2px; }
 #modal-cancel { background: var(--btn-hover); color: var(--btn-text); }
 #modal-cancel:hover { opacity: 0.75; }
+#modal-cancel:focus-visible { outline: 2px solid var(--btn-text); outline-offset: 2px; }
 
 /* ── Board ── */
 .container {
@@ -374,6 +389,11 @@ body {
   background-clip: padding-box;
   outline: none;
   transition: transform 0.15s, border-color 0.15s;
+  /* Área táctil mínima WCAG 2.5.5: 44×44px sin agrandar el visual */
+  padding: 12px;
+  margin: -12px;
+  background-clip: content-box;
+  box-sizing: content-box;
 }
 .color-dot:hover         { transform: scale(1.32); border-color: rgba(0,0,0,0.45); }
 .color-dot:focus-visible { outline: 2px solid #444; outline-offset: 2px; }
@@ -458,7 +478,7 @@ body {
 }
 @media screen and (max-width: 320px) {
   .note { width: 200px; height: 200px; }
-  .note .input { font-size: 20px; }
+  .note .input { font-size: 22px; } /* mínimo legible para fuente cursiva */
   .modal { padding: 20px 18px; }
   .container { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); justify-items: center; }
 }
