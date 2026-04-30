@@ -22,8 +22,10 @@
     <!-- Overlay de fondo oscuro (solo dark mode) -->
     <div class="dark-overlay" aria-hidden="true"></div>
 
-    <div class="toolbar" role="toolbar" aria-label="Barra de herramientas">
-      <button id="create" title="Crear nueva nota (Ctrl+N)" aria-label="Crear nueva nota">
+    <!-- header en vez de div: semántica correcta para la barra principal de la app.
+         role="toolbar" se elimina porque no implementa navegación por flechas. -->
+    <header class="toolbar" aria-label="Barra de herramientas">
+      <button id="create" title="Crear nueva nota" aria-label="Crear nueva nota">
         <i class="fa-solid fa-plus" aria-hidden="true"></i>
         <span>Nueva nota</span>
       </button>
@@ -32,36 +34,50 @@
         <span>Limpiar todo</span>
       </button>
       <span class="note-count" id="note-count" aria-live="polite">0 notas</span>
-      <button id="help-btn" title="Ayuda" aria-label="Ver ayuda" aria-expanded="false">
+      <button id="help-btn" title="Ayuda" aria-label="Ver ayuda" aria-expanded="false" aria-controls="help-panel">
         <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
       </button>
-    </div>
+    </header>
 
-    <!-- Panel de ayuda -->
-    <div class="help-panel" id="help-panel" role="dialog" aria-modal="false" aria-label="Ayuda" hidden>
+    <!-- Panel de ayuda: role="region" en vez de "dialog" porque no es modal
+         y el foco no queda atrapado. aria-labelledby apunta al h2 del título. -->
+    <div class="help-panel" id="help-panel"
+         role="region"
+         aria-labelledby="help-title"
+         hidden>
       <div class="help-header">
-        <span>¿Cómo usar Sticky Notes?</span>
-        <button id="help-close" aria-label="Cerrar ayuda"><i class="fa-solid fa-xmark"></i></button>
+        <h2 id="help-title">¿Cómo usar Sticky Notes?</h2>
+        <button id="help-close" aria-label="Cerrar ayuda">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
       </div>
+      <!-- aria-hidden en cada ícono decorativo para evitar que el lector
+           de pantalla lo anuncie junto al texto que ya describe la acción -->
       <ul class="help-list">
-        <li><i class="fa-solid fa-plus"></i> <strong>Nueva nota</strong> — creá una nueva nota</li>
-        <li><i class="fa-solid fa-pencil"></i> <strong>Editar</strong> — hacé clic dentro de cualquier nota y escribí</li>
-        <li><i class="fa-solid fa-thumbtack"></i> <strong>Eliminar</strong> — hacé clic en la chinche de la nota</li>
-        <li><i class="fa-solid fa-palette"></i> <strong>Cambiar color</strong> — pasá el mouse sobre la nota y elegí un color</li>
-        <li><i class="fa-solid fa-up-down-left-right"></i> <strong>Mover</strong> — arrastrá las notas para reordenarlas</li>
-        <li><i class="fa-solid fa-floppy-disk"></i> <strong>Guardado automático</strong> — tus notas se guardan en el navegador</li>
-        <li><i class="fa-solid fa-trash"></i> <strong>Limpiar todo</strong> — eliminá todas las notas (pide confirmación)</li>
+        <li><i class="fa-solid fa-plus"             aria-hidden="true"></i> <strong>Nueva nota</strong> — creá una nueva nota</li>
+        <li><i class="fa-solid fa-pencil"           aria-hidden="true"></i> <strong>Editar</strong> — hacé clic dentro de cualquier nota y escribí</li>
+        <li><i class="fa-solid fa-thumbtack"        aria-hidden="true"></i> <strong>Eliminar</strong> — hacé clic en la chinche de la nota</li>
+        <li><i class="fa-solid fa-palette"          aria-hidden="true"></i> <strong>Cambiar color</strong> — pasá el mouse sobre la nota y elegí un color</li>
+        <li><i class="fa-solid fa-up-down-left-right" aria-hidden="true"></i> <strong>Mover</strong> — arrastrá las notas para reordenarlas</li>
+        <li><i class="fa-solid fa-floppy-disk"      aria-hidden="true"></i> <strong>Guardado automático</strong> — tus notas se guardan en el navegador</li>
+        <li><i class="fa-solid fa-trash"            aria-hidden="true"></i> <strong>Limpiar todo</strong> — eliminá todas las notas (pide confirmación)</li>
       </ul>
     </div>
 
-    <!-- Modal de confirmación -->
-    <div class="modal-overlay" id="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
-      <div class="modal">
+    <!-- Modal de confirmación: aria-modal="true" correcto porque sí es modal.
+         role="document" interno permite que lectores de pantalla lean el contenido. -->
+    <div class="modal-overlay" id="modal-overlay"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="modal-title"
+         hidden>
+      <div class="modal" role="document">
         <p id="modal-title">¿Eliminar todas las notas?</p>
-        <div class="modal-actions">
-          <button id="modal-confirm" aria-label="Confirmar eliminación">Sí, eliminar</button>
-          <button id="modal-cancel" aria-label="Cancelar">Cancelar</button>
-        </div>
+        <!-- menu es la semántica correcta para una lista de acciones relacionadas -->
+        <menu class="modal-actions">
+          <li><button id="modal-confirm" aria-label="Confirmar eliminación">Sí, eliminar</button></li>
+          <li><button id="modal-cancel" aria-label="Cancelar">Cancelar</button></li>
+        </menu>
       </div>
     </div>
 
