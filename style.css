@@ -189,7 +189,7 @@ body {
   border-radius: 6px;
   transition: background 0.15s;
 }
-.help-header button:hover        { background: var(--btn-hover); }
+.help-header button:hover { background: var(--btn-hover); }
 .help-header button:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
@@ -263,7 +263,7 @@ body {
   cursor: pointer;
   transition: transform 0.12s, opacity 0.15s;
 }
-.modal-actions button:active      { transform: scale(0.96); }
+.modal-actions button:active { transform: scale(0.96); }
 .modal-actions button:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
@@ -389,11 +389,6 @@ body {
   background-clip: padding-box;
   outline: none;
   transition: transform 0.15s, border-color 0.15s;
-  /* Área táctil mínima WCAG 2.5.5: 44×44px sin agrandar el visual */
-  padding: 12px;
-  margin: -12px;
-  background-clip: content-box;
-  box-sizing: content-box;
 }
 .color-dot:hover         { transform: scale(1.32); border-color: rgba(0,0,0,0.45); }
 .color-dot:focus-visible { outline: 2px solid #444; outline-offset: 2px; }
@@ -452,7 +447,7 @@ body {
   .toolbar button span { display: none; }
   .toolbar button { padding: 7px 10px; }
   .toolbar button i { font-size: 15px; }
-  .note { width: 260px; height: 260px; }
+  .note { width: 260px; height: 260px; padding: 16px 16px 26px; }
   .note .thumbtack { width: 40px; height: 40px; }
   .note .input { font-size: 26px; }
   .container {
@@ -464,7 +459,7 @@ body {
 }
 @media screen and (max-width: 400px) {
   body { padding-top: 60px; }
-  .note { width: 220px; height: 220px; }
+  .note { width: 220px; height: 220px; padding: 12px 16px 24px; }
   .note .thumbtack { width: 36px; height: 36px; top: -12px; }
   .note .input { font-size: 22px; }
   .note .char-count { font-size: 11px; }
@@ -477,7 +472,7 @@ body {
   }
 }
 @media screen and (max-width: 320px) {
-  .note { width: 200px; height: 200px; }
+  .note { width: 200px; height: 200px; padding: 8px 12px 8px; }
   .note .input { font-size: 22px; } /* mínimo legible para fuente cursiva */
   .modal { padding: 20px 18px; }
   .container { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); justify-items: center; }
