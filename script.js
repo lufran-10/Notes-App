@@ -247,11 +247,50 @@ class NoteManager {
     const lineCount = document.createElement("span");
     lineCount.classList.add("char-count");
 
-    // Selector de colores
+    // Selector de colores (horizontal, visible en >400px)
     const picker = document.createElement("div");
     picker.classList.add("color-picker");
     picker.setAttribute("aria-label", "Cambiar color de la nota");
+
+    // Menú desplegable (visible en ≤400px)
+    const colorMenu = document.createElement("div");
+    colorMenu.classList.add("color-menu");
+    colorMenu.setAttribute("aria-label", "Cambiar color de la nota");
+
+    const trigger = document.createElement("button");
+    trigger.classList.add("color-menu-trigger");
+    trigger.style.background = this._colorVar(colorName);
+    trigger.title = "Cambiar color";
+    trigger.setAttribute("aria-label", "Cambiar color de la nota");
+    trigger.setAttribute("aria-expanded", "false");
+    trigger.addEventListener("mousedown", (e) => e.stopPropagation());
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = colorMenu.classList.toggle("open");
+      trigger.setAttribute("aria-expanded", String(isOpen));
+    });
+
+    const panel = document.createElement("div");
+    panel.classList.add("color-menu-panel");
+    panel.setAttribute("role", "menu");
+
+    // Cerrar al hacer clic fuera
+    document.addEventListener("click", (e) => {
+      if (!colorMenu.contains(e.target)) {
+        colorMenu.classList.remove("open");
+        trigger.setAttribute("aria-expanded", "false");
+      }
+    });
+    // Cerrar con Escape
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && colorMenu.classList.contains("open")) {
+        colorMenu.classList.remove("open");
+        trigger.setAttribute("aria-expanded", "false");
+      }
+    });
+
     this.colors.forEach(name => {
+      // Dot para el picker horizontal
       const dot = document.createElement("button");
       dot.classList.add("color-dot");
       dot.style.background = this._colorVar(name);
@@ -260,12 +299,29 @@ class NoteManager {
       dot.addEventListener("mousedown", (e) => e.stopPropagation());
       dot.addEventListener("click", (e) => {
         e.stopPropagation();
-        note.style.background = this._colorVar(name);
-        note.dataset.color = name;
-        this.saveNotes();
+        this._applyColor(note, trigger, name);
       });
       picker.appendChild(dot);
+
+      // Dot para el menú desplegable
+      const dotMenu = document.createElement("button");
+      dotMenu.classList.add("color-dot");
+      dotMenu.style.background = this._colorVar(name);
+      dotMenu.title = "Cambiar a este color";
+      dotMenu.setAttribute("aria-label", `Color ${name}`);
+      dotMenu.setAttribute("role", "menuitem");
+      dotMenu.addEventListener("mousedown", (e) => e.stopPropagation());
+      dotMenu.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this._applyColor(note, trigger, name);
+        colorMenu.classList.remove("open");
+        trigger.setAttribute("aria-expanded", "false");
+      });
+      panel.appendChild(dotMenu);
     });
+
+    colorMenu.appendChild(trigger);
+    colorMenu.appendChild(panel);
 
     this._makeDraggable(note);
 
@@ -273,12 +329,24 @@ class NoteManager {
     note.appendChild(textArea);
     note.appendChild(lineCount);
     note.appendChild(picker);
+    note.appendChild(colorMenu);
     this.board.appendChild(note);
     this._notes.push(note); // registrar en array interno
 
     requestAnimationFrame(() => this._setupLineLimit(textArea, lineCount));
     this._updateCounter();
     return note;
+  }
+
+  // ── Aplicar color a una nota ──────────────────────────────────────────────
+  // Centraliza la lógica compartida entre el picker horizontal y el menú
+  // desplegable para no duplicar código.
+
+  _applyColor(note, trigger, name) {
+    note.style.background    = this._colorVar(name);
+    note.dataset.color       = name;
+    trigger.style.background = this._colorVar(name);
+    this.saveNotes();
   }
 
   // ── Sanitizar contenido al cargar ─────────────────────────────────────────

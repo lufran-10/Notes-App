@@ -189,7 +189,7 @@ body {
   border-radius: 6px;
   transition: background 0.15s;
 }
-.help-header button:hover { background: var(--btn-hover); }
+.help-header button:hover        { background: var(--btn-hover); }
 .help-header button:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
@@ -263,7 +263,7 @@ body {
   cursor: pointer;
   transition: transform 0.12s, opacity 0.15s;
 }
-.modal-actions button:active { transform: scale(0.96); }
+.modal-actions button:active      { transform: scale(0.96); }
 .modal-actions button:focus-visible {
   outline: 2px solid currentColor;
   outline-offset: 2px;
@@ -393,6 +393,80 @@ body {
 .color-dot:hover         { transform: scale(1.32); border-color: rgba(0,0,0,0.45); }
 .color-dot:focus-visible { outline: 2px solid #444; outline-offset: 2px; }
 
+/* ── Menú desplegable de color (solo ≤400px) ── */
+.note .color-menu       { display: none; }
+
+@media screen and (max-width: 400px) {
+  /* Ocultar el selector horizontal en pantallas pequeñas */
+  .note .color-picker   { display: none; }
+
+  /* Mostrar el menú desplegable */
+  .note .color-menu {
+    display: block;
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    z-index: 10;
+  }
+
+  /* Botón trigger: círculo del color actual */
+  .note .color-menu-trigger {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.25);
+    cursor: pointer;
+    outline: none;
+    transition: transform 0.15s, border-color 0.15s;
+    display: block;
+  }
+  .note .color-menu-trigger:hover        { transform: scale(1.2); border-color: rgba(0,0,0,0.5); }
+  .note .color-menu-trigger:focus-visible { outline: 2px solid #444; outline-offset: 2px; }
+
+  /* Reservar espacio en el input para que el texto no tape el trigger */
+  .note .input {
+    padding-right: 24px;
+    padding-bottom: 20px;
+  }
+
+  /* Panel con los dots, se extiende hacia arriba */
+  .note .color-menu-panel {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    right: 0;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 7px;
+    background: rgba(255,255,255,0.92);
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(6px);
+    transition: opacity 0.18s, transform 0.18s;
+  }
+  @media (prefers-color-scheme: dark) {
+    .note .color-menu-panel {
+      background: rgba(40,40,40,0.95);
+    }
+  }
+
+  /* Estado abierto */
+  .note .color-menu.open .color-menu-panel {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  /* Dots dentro del panel desplegable */
+  .note .color-menu .color-dot {
+    width: 26px;
+    height: 26px;
+    display: block;
+  }
+}
+
 /* ── Área de texto ── */
 .note .input {
   outline: none;
@@ -459,12 +533,13 @@ body {
 }
 @media screen and (max-width: 400px) {
   body { padding-top: 60px; }
-  .note { width: 220px; height: 220px; padding: 12px 16px 24px; }
+  /* altura 222px: 222 - 12 - 24 = 186px útiles → floor(186/30.8) = 6 líneas */
+  .note { width: 222px; height: 222px; padding: 12px 16px 24px; }
   .note .thumbtack { width: 36px; height: 36px; top: -12px; }
   .note .input { font-size: 22px; }
   .note .char-count { font-size: 11px; }
   .container {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(222px, 1fr));
     justify-items: center;
     gap: 36px 3%;
     width: 100%;
@@ -472,8 +547,9 @@ body {
   }
 }
 @media screen and (max-width: 320px) {
-  .note { width: 200px; height: 200px; padding: 8px 12px 8px; }
-  .note .input { font-size: 22px; } /* mínimo legible para fuente cursiva */
+  /* altura 202px: 202 - 8 - 8 = 186px útiles → floor(186/30.8) = 6 líneas */
+  .note { width: 202px; height: 202px; padding: 8px 12px 8px; }
+  .note .input { font-size: 22px; }
   .modal { padding: 20px 18px; }
-  .container { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); justify-items: center; }
+  .container { grid-template-columns: repeat(auto-fill, minmax(202px, 1fr)); justify-items: center; }
 }
