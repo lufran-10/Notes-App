@@ -4,6 +4,12 @@ class NoteManager {
     this.colors  = ["blue", "pink", "green", "yellow", "purple"];
     this.board   = document.getElementById("board");
     this.counter = document.getElementById("note-count");
+    this.modal = {
+      overlay: document.getElementById("modal-overlay"),
+      title:   document.getElementById("modal-title"),
+      confirm: document.getElementById("modal-confirm"),
+      cancel:  document.getElementById("modal-cancel"),
+    };
     this._darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
     this._dragEl = null;
     this._notes  = []; // array interno para evitar querySelectorAll repetidos
@@ -55,6 +61,47 @@ class NoteManager {
       "#ccaafe": "purple","rgb(204, 170, 254)": "purple",
     };
     return legacyMap[stored] ?? "yellow";
+  }
+
+  _setDisclosure(panel, trigger, open) {
+    panel.hidden = !open;
+    trigger.setAttribute("aria-expanded", String(open));
+  }
+
+  _closeDisclosure(panel, trigger) {
+    this._setDisclosure(panel, trigger, false);
+  }
+
+  _bindDismissiblePanel({ panel, trigger, closeButton }) {
+    trigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this._setDisclosure(panel, trigger, panel.hidden);
+    });
+    closeButton?.addEventListener("click", () => this._closeDisclosure(panel, trigger));
+    document.addEventListener("click", (e) => {
+      if (!panel.hidden && !panel.contains(e.target) && !trigger.contains(e.target)) {
+        this._closeDisclosure(panel, trigger);
+      }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !panel.hidden) {
+        this._closeDisclosure(panel, trigger);
+      }
+    });
+  }
+
+  _createColorButton(name, onSelect) {
+    const button = document.createElement("button");
+    button.classList.add("color-dot");
+    button.style.background = this._colorVar(name);
+    button.title = "Cambiar a este color";
+    button.setAttribute("aria-label", `Color ${name}`);
+    button.addEventListener("mousedown", (e) => e.stopPropagation());
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onSelect(name);
+    });
+    return button;
   }
 
   _debounce(fn, ms) {
@@ -292,29 +339,13 @@ class NoteManager {
     panel.classList.add("color-menu-panel");
 
     this.colors.forEach(name => {
-      // Dot para el picker horizontal
-      const dot = document.createElement("button");
-      dot.classList.add("color-dot");
-      dot.style.background = this._colorVar(name);
-      dot.title = "Cambiar a este color";
-      dot.setAttribute("aria-label", `Color ${name}`);
-      dot.addEventListener("mousedown", (e) => e.stopPropagation());
-      dot.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this._applyColor(note, trigger, name);
+      const dot = this._createColorButton(name, selected => {
+        this._applyColor(note, trigger, selected);
       });
       picker.appendChild(dot);
 
-      // Dot para el menú desplegable
-      const dotMenu = document.createElement("button");
-      dotMenu.classList.add("color-dot");
-      dotMenu.style.background = this._colorVar(name);
-      dotMenu.title = "Cambiar a este color";
-      dotMenu.setAttribute("aria-label", `Color ${name}`);
-      dotMenu.addEventListener("mousedown", (e) => e.stopPropagation());
-      dotMenu.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this._applyColor(note, trigger, name);
+      const dotMenu = this._createColorButton(name, selected => {
+        this._applyColor(note, trigger, selected);
         this._closeColorMenus();
       });
       panel.appendChild(dotMenu);
@@ -483,9 +514,7 @@ class NoteManager {
 
   _showStorageWarning() {
     // Reutilizar el modal existente con un mensaje diferente
-    const title   = document.getElementById("modal-title");
-    const confirm = document.getElementById("modal-confirm");
-    const cancel  = document.getElementById("modal-cancel");
+    const { title, confirm, cancel } = this.modal;
 
     const originalTitle   = title.textContent;
     const originalConfirm = confirm.textContent;
@@ -558,9 +587,7 @@ class NoteManager {
   }
 
   _openModal({ onConfirm = null, onClose = null, hideCancel = false } = {}) {
-    const overlay = document.getElementById("modal-overlay");
-    const confirm = document.getElementById("modal-confirm");
-    const cancel  = document.getElementById("modal-cancel");
+    const { overlay, confirm, cancel } = this.modal;
 
     this._modalAction = onConfirm;
     this._modalOnClose = onClose;
@@ -574,8 +601,7 @@ class NoteManager {
   }
 
   _closeModal({ confirmed = false } = {}) {
-    const overlay = document.getElementById("modal-overlay");
-    const cancel  = document.getElementById("modal-cancel");
+    const { overlay, cancel } = this.modal;
     const action = confirmed ? this._modalAction : null;
     const onClose = this._modalOnClose;
     const returnFocus = this._modalReturnFocus;
@@ -594,7 +620,7 @@ class NoteManager {
   _trapModalFocus(e) {
     if (e.key !== "Tab") return;
 
-    const overlay = document.getElementById("modal-overlay");
+    const { overlay } = this.modal;
     const focusable = [...overlay.querySelectorAll("button:not([hidden])")]
       .filter(el => !el.disabled && el.offsetParent !== null);
     if (focusable.length === 0) return;
@@ -612,9 +638,7 @@ class NoteManager {
   }
 
   _bindModal() {
-    const overlay = document.getElementById("modal-overlay");
-    const confirm = document.getElementById("modal-confirm");
-    const cancel  = document.getElementById("modal-cancel");
+    const { overlay, confirm, cancel } = this.modal;
 
     document.getElementById("clear-all").addEventListener("click", () => {
       if (this._notes.length === 0) return;
@@ -644,28 +668,7 @@ class NoteManager {
     const panel = document.getElementById("help-panel");
     const close = document.getElementById("help-close");
 
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const open = panel.hidden;
-      panel.hidden = !open;
-      btn.setAttribute("aria-expanded", String(open));
-    });
-    close.addEventListener("click", () => {
-      panel.hidden = true;
-      btn.setAttribute("aria-expanded", "false");
-    });
-    document.addEventListener("click", (e) => {
-      if (!panel.hidden && !panel.contains(e.target) && e.target !== btn) {
-        panel.hidden = true;
-        btn.setAttribute("aria-expanded", "false");
-      }
-    });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !panel.hidden) {
-        panel.hidden = true;
-        btn.setAttribute("aria-expanded", "false");
-      }
-    });
+    this._bindDismissiblePanel({ panel, trigger: btn, closeButton: close });
   }
 
   _closeColorMenus(except = null) {
