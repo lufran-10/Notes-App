@@ -23,6 +23,7 @@ button, input, select, textarea {
   --toolbar-bg:     rgba(255, 255, 255, 0.75);
   --toolbar-border: rgba(0, 0, 0, 0.10);
   --toolbar-shadow: 0 2px 16px rgba(0,0,0,0.10);
+  --toolbar-offset: 74px;
   --btn-text:       #333;
   --btn-hover:      rgba(0,0,0,0.07);
   --count-color:    #555;    /* era #666 — mejora ratio sobre toolbar semitransparente */
@@ -43,6 +44,9 @@ button, input, select, textarea {
   --thumbtack-top:  -14px;
   --board-gap-row:  50px;
   --board-gap-col:  5%;
+  --color-dot-size: 17px;
+  --color-menu-trigger-size: 18px;
+  --color-menu-dot-size: 26px;
 }
 
 /* ── Variables: modo oscuro ── */
@@ -82,7 +86,7 @@ body {
   background: url("./images/cork-board.jpg") no-repeat center center fixed;
   background-size: cover;
   min-height: 100vh;
-  padding-top: 74px;
+  padding-top: var(--toolbar-offset);
 }
 @media (max-width: 640px) {
   body { background-attachment: scroll; } /* fix iOS Safari con fixed */
@@ -404,14 +408,9 @@ body {
 .note:hover .color-picker,
 .note:focus-within .color-picker { opacity: 1; }
 
-/* En touch el hover no persiste — mostrar siempre el selector */
-@media (hover: none) {
-  .note .color-picker { opacity: 1; }
-}
-
 .color-dot {
-  width: 17px;
-  height: 17px;
+  width: var(--color-dot-size);
+  height: var(--color-dot-size);
   border-radius: 50%;
   border: 2px solid rgba(0,0,0,0.20);
   cursor: pointer;
@@ -422,14 +421,17 @@ body {
 .color-dot:hover         { transform: scale(1.32); border-color: rgba(0,0,0,0.45); }
 .color-dot:focus-visible { outline: 2px solid #444; outline-offset: 2px; }
 
-/* ── Menú desplegable de color (solo ≤400px) ── */
+/* ── Menú desplegable de color ── */
 .note .color-menu       { display: none; }
 
-@media screen and (max-width: 400px) {
-  /* Ocultar el selector horizontal en pantallas pequeñas */
+@media (hover: none), (pointer: coarse), screen and (max-width: 400px) {
+  :root {
+    --color-menu-trigger-size: 28px;
+    --color-menu-dot-size: 28px;
+  }
+
   .note .color-picker   { display: none; }
 
-  /* Mostrar el menú desplegable */
   .note .color-menu {
     display: block;
     position: absolute;
@@ -438,10 +440,9 @@ body {
     z-index: 10;
   }
 
-  /* Botón trigger: círculo del color actual */
   .note .color-menu-trigger {
-    width: 18px;
-    height: 18px;
+    width: var(--color-menu-trigger-size);
+    height: var(--color-menu-trigger-size);
     border-radius: 50%;
     border: 2px solid rgba(0,0,0,0.25);
     cursor: pointer;
@@ -452,13 +453,11 @@ body {
   .note .color-menu-trigger:hover        { transform: scale(1.2); border-color: rgba(0,0,0,0.5); }
   .note .color-menu-trigger:focus-visible { outline: 2px solid #444; outline-offset: 2px; }
 
-  /* Reservar espacio en el input para que el texto no tape el trigger */
   .note .input {
-    padding-right: 24px;
-    padding-bottom: 20px;
+    padding-right: calc(var(--color-menu-trigger-size) + 6px);
+    padding-bottom: calc(var(--color-menu-trigger-size) + 2px);
   }
 
-  /* Panel con los dots, se extiende hacia arriba */
   .note .color-menu-panel {
     position: absolute;
     bottom: calc(100% + 6px);
@@ -475,23 +474,16 @@ body {
     transform: translateY(6px);
     transition: opacity 0.18s, transform 0.18s;
   }
-  @media (prefers-color-scheme: dark) {
-    .note .color-menu-panel {
-      background: rgba(40,40,40,0.95);
-    }
-  }
 
-  /* Estado abierto */
   .note .color-menu.open .color-menu-panel {
     opacity: 1;
     pointer-events: auto;
     transform: translateY(0);
   }
 
-  /* Dots dentro del panel desplegable */
   .note .color-menu .color-dot {
-    width: 26px;
-    height: 26px;
+    width: var(--color-menu-dot-size);
+    height: var(--color-menu-dot-size);
     display: block;
   }
 }
@@ -545,6 +537,7 @@ body {
 }
 @media screen and (max-width: 640px) {
   :root {
+    --toolbar-offset: 66px;
     --note-size: 260px;
     --note-padding: 16px 16px 26px;
     --note-font-size: 26px;
@@ -552,7 +545,6 @@ body {
     --board-gap-row: 40px;
     --board-gap-col: 3%;
   }
-  body { padding-top: 66px; }
   html, body { overflow-x: hidden; }
   .toolbar { padding: 6px 12px; gap: 4px; }
   .toolbar button span { display: none; }
@@ -563,8 +555,15 @@ body {
     width: 95%;
   }
 }
+
+@media (prefers-color-scheme: dark) {
+  .note .color-menu-panel {
+    background: rgba(40,40,40,0.95);
+  }
+}
 @media screen and (max-width: 400px) {
   :root {
+    --toolbar-offset: 60px;
     --note-size: 222px;
     --note-padding: 12px 16px 24px;
     --note-font-size: 22px;
@@ -572,8 +571,9 @@ body {
     --thumbtack-top: -12px;
     --board-gap-row: 36px;
     --board-gap-col: 3%;
+    --color-menu-trigger-size: 28px;
+    --color-menu-dot-size: 28px;
   }
-  body { padding-top: 60px; }
   /* altura 222px: 222 - 12 - 24 = 186px útiles → floor(186/30.8) = 6 líneas */
   .note .char-count { font-size: 11px; }
   .container {
