@@ -15,6 +15,7 @@ class NoteManager {
     this._bindModal();
     this._bindBoard();
     this._bindHelp();
+    this._bindColorMenus();
     this.loadNotes();
 
     this._darkMQ.addEventListener("change", () => this._updateThumbTacks());
@@ -281,27 +282,14 @@ class NoteManager {
     trigger.addEventListener("mousedown", (e) => e.stopPropagation());
     trigger.addEventListener("click", (e) => {
       e.stopPropagation();
-      const isOpen = colorMenu.classList.toggle("open");
-      trigger.setAttribute("aria-expanded", String(isOpen));
+      const willOpen = !colorMenu.classList.contains("open");
+      this._closeColorMenus(colorMenu);
+      colorMenu.classList.toggle("open", willOpen);
+      trigger.setAttribute("aria-expanded", String(willOpen));
     });
 
     const panel = document.createElement("div");
     panel.classList.add("color-menu-panel");
-
-    // Cerrar al hacer clic fuera
-    document.addEventListener("click", (e) => {
-      if (!colorMenu.contains(e.target)) {
-        colorMenu.classList.remove("open");
-        trigger.setAttribute("aria-expanded", "false");
-      }
-    });
-    // Cerrar con Escape
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && colorMenu.classList.contains("open")) {
-        colorMenu.classList.remove("open");
-        trigger.setAttribute("aria-expanded", "false");
-      }
-    });
 
     this.colors.forEach(name => {
       // Dot para el picker horizontal
@@ -327,8 +315,7 @@ class NoteManager {
       dotMenu.addEventListener("click", (e) => {
         e.stopPropagation();
         this._applyColor(note, trigger, name);
-        colorMenu.classList.remove("open");
-        trigger.setAttribute("aria-expanded", "false");
+        this._closeColorMenus();
       });
       panel.appendChild(dotMenu);
     });
@@ -678,6 +665,23 @@ class NoteManager {
         panel.hidden = true;
         btn.setAttribute("aria-expanded", "false");
       }
+    });
+  }
+
+  _closeColorMenus(except = null) {
+    document.querySelectorAll(".color-menu.open").forEach(menu => {
+      if (menu === except) return;
+      menu.classList.remove("open");
+      menu.querySelector(".color-menu-trigger")?.setAttribute("aria-expanded", "false");
+    });
+  }
+
+  _bindColorMenus() {
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".color-menu")) this._closeColorMenus();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") this._closeColorMenus();
     });
   }
 

@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&display=swap");
-
 /* ── Reset ── */
 *, *::before, *::after {
   margin: 0;
@@ -86,6 +84,10 @@ html, body { height: 100%; }
 body {
   font-family: "Caveat", cursive; /* herencia global — evita repetir en cada regla */
   background: url("./images/cork-board.jpg") no-repeat center center fixed;
+  background-image: image-set(
+    url("./images/cork-board.webp") type("image/webp"),
+    url("./images/cork-board.jpg") type("image/jpeg")
+  );
   background-size: cover;
   min-height: 100vh;
   padding-top: var(--toolbar-offset);
