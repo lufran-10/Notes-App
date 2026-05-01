@@ -13,13 +13,6 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&display=swap"
     />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-      integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
     <link rel="stylesheet" href="style.css" />
     <title>Sticky Notes</title>
   </head>
@@ -32,16 +25,16 @@
          role="toolbar" se elimina porque no implementa navegación por flechas. -->
     <header class="toolbar" aria-label="Barra de herramientas">
       <button id="create" title="Crear nueva nota" aria-label="Crear nueva nota">
-        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        <span class="icon icon-plus" aria-hidden="true"></span>
         <span>Nueva nota</span>
       </button>
       <button id="clear-all" title="Eliminar todas las notas" aria-label="Eliminar todas las notas">
-        <i class="fa-solid fa-trash" aria-hidden="true"></i>
+        <span class="icon icon-trash" aria-hidden="true"></span>
         <span>Limpiar todo</span>
       </button>
       <span class="note-count" id="note-count" aria-live="polite">0 notas</span>
       <button id="help-btn" title="Ayuda" aria-label="Ver ayuda" aria-expanded="false" aria-controls="help-panel">
-        <i class="fa-solid fa-circle-question" aria-hidden="true"></i>
+        <span class="icon icon-circle-question" aria-hidden="true"></span>
       </button>
     </header>
 
@@ -54,19 +47,19 @@
       <div class="help-header">
         <h2 id="help-title">¿Cómo usar Sticky Notes?</h2>
         <button id="help-close" aria-label="Cerrar ayuda">
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          <span class="icon icon-xmark" aria-hidden="true"></span>
         </button>
       </div>
       <!-- aria-hidden en cada ícono decorativo para evitar que el lector
            de pantalla lo anuncie junto al texto que ya describe la acción -->
       <ul class="help-list">
-        <li><i class="fa-solid fa-plus"             aria-hidden="true"></i> <strong>Nueva nota</strong> — creá una nueva nota</li>
-        <li><i class="fa-solid fa-pencil"           aria-hidden="true"></i> <strong>Editar</strong> — hacé clic dentro de cualquier nota y escribí</li>
-        <li><i class="fa-solid fa-thumbtack"        aria-hidden="true"></i> <strong>Eliminar</strong> — hacé clic en la chinche de la nota</li>
-        <li><i class="fa-solid fa-palette"          aria-hidden="true"></i> <strong>Cambiar color</strong> — pasá el mouse sobre la nota y elegí un color</li>
-        <li><i class="fa-solid fa-up-down-left-right" aria-hidden="true"></i> <strong>Mover</strong> — arrastrá las notas para reordenarlas</li>
-        <li><i class="fa-solid fa-floppy-disk"      aria-hidden="true"></i> <strong>Guardado automático</strong> — tus notas se guardan en el navegador</li>
-        <li><i class="fa-solid fa-trash"            aria-hidden="true"></i> <strong>Limpiar todo</strong> — eliminá todas las notas (pide confirmación)</li>
+        <li><span class="icon icon-plus" aria-hidden="true"></span> <strong>Nueva nota</strong> — creá una nueva nota</li>
+        <li><span class="icon icon-pencil" aria-hidden="true"></span> <strong>Editar</strong> — hacé clic dentro de cualquier nota y escribí</li>
+        <li><span class="icon icon-thumbtack" aria-hidden="true"></span> <strong>Eliminar</strong> — hacé clic en la chinche de la nota</li>
+        <li><span class="icon icon-palette" aria-hidden="true"></span> <strong>Cambiar color</strong> — pasá el mouse sobre la nota y elegí un color</li>
+        <li><span class="icon icon-move" aria-hidden="true"></span> <strong>Mover</strong> — arrastrá las notas para reordenarlas</li>
+        <li><span class="icon icon-floppy-disk" aria-hidden="true"></span> <strong>Guardado automático</strong> — tus notas se guardan en el navegador</li>
+        <li><span class="icon icon-trash" aria-hidden="true"></span> <strong>Limpiar todo</strong> — eliminá todas las notas (pide confirmación)</li>
       </ul>
     </div>
 

@@ -153,7 +153,25 @@ body {
   outline: 2px solid currentColor;
   outline-offset: 2px;
 }
-.toolbar button i      { font-size: 14px; }
+.icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  background: currentColor;
+  -webkit-mask: var(--icon-url) center / contain no-repeat;
+  mask: var(--icon-url) center / contain no-repeat;
+}
+.icon-plus            { --icon-url: url("./images/icons/plus-solid.svg"); }
+.icon-trash           { --icon-url: url("./images/icons/trash-solid.svg"); }
+.icon-circle-question { --icon-url: url("./images/icons/circle-question-solid.svg"); }
+.icon-xmark           { --icon-url: url("./images/icons/xmark-solid.svg"); }
+.icon-pencil          { --icon-url: url("./images/icons/pencil-solid.svg"); }
+.icon-thumbtack       { --icon-url: url("./images/icons/thumbtack-solid.svg"); }
+.icon-palette         { --icon-url: url("./images/icons/palette-solid.svg"); }
+.icon-move            { --icon-url: url("./images/icons/move.svg"); }
+.icon-floppy-disk     { --icon-url: url("./images/icons/floppy-disk-solid.svg"); }
+.toolbar button .icon { font-size: 14px; }
 #create    { font-weight: 600; }
 #clear-all { color: #c0392b; }
 #help-btn  { margin-left: 4px; font-size: 18px; }
@@ -237,10 +255,11 @@ body {
   cursor: default;
 }
 .help-list li:hover { background: var(--help-item-hover); }
-.help-list li i {
+.help-list li .icon {
   margin-top: 2px;
   font-size: 13px;
   width: 16px;
+  height: 16px;
   text-align: center;
   color: #595959; /* era #888 (ratio 3.54:1, falla AA) — #595959 da 7:1, pasa AAA */
   flex-shrink: 0;
@@ -555,9 +574,9 @@ body {
   }
   html, body { overflow-x: hidden; }
   .toolbar { padding: 6px 12px; gap: 4px; }
-  .toolbar button span { display: none; }
+  .toolbar button span:not(.icon) { display: none; }
   .toolbar button { padding: 7px 10px; }
-  .toolbar button i { font-size: 15px; }
+  .toolbar button .icon { font-size: 15px; }
   .container {
     justify-items: center;
     width: 95%;
