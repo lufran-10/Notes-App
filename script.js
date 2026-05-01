@@ -7,6 +7,9 @@ class NoteManager {
     this._darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
     this._dragEl = null;
     this._notes  = []; // array interno para evitar querySelectorAll repetidos
+    this._modalAction = null;
+    this._modalOnClose = null;
+    this._modalReturnFocus = null;
 
     this._bindToolbar();
     this._bindModal();
@@ -217,26 +220,31 @@ class NoteManager {
     note.setAttribute("aria-label", "Nota adhesiva");
 
     // Chinche
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.classList.add("thumbtack-button");
+    removeButton.title = "Eliminar nota";
+    removeButton.setAttribute("aria-label", "Eliminar nota");
+    removeButton.addEventListener("mousedown", (e) => e.stopPropagation());
+    removeButton.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this._removeNote(note);
+    });
+
     const img     = document.createElement("img");
     img.src       = this._thumbtackSrc();
-    img.title     = "Eliminar nota";
-    img.alt       = "Eliminar nota";
+    img.alt       = "";
     img.draggable = false;
     img.classList.add("thumbtack");
-    img.setAttribute("role", "button");
-    img.setAttribute("tabindex", "0");
-    img.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        this._removeNote(note);
-      }
-    });
+    img.setAttribute("aria-hidden", "true");
+    removeButton.appendChild(img);
 
     // Área de texto
     const textArea       = document.createElement("div");
     textArea.classList.add("input");
     textArea.contentEditable = "true";
     textArea.spellcheck      = false;
+    textArea.setAttribute("role", "textbox");
     textArea.setAttribute("aria-label", "Contenido de la nota");
     textArea.setAttribute("aria-multiline", "true");
     textArea.addEventListener("mousedown",  (e) => e.stopPropagation());
@@ -250,11 +258,13 @@ class NoteManager {
     // Selector de colores (horizontal, visible en >400px)
     const picker = document.createElement("div");
     picker.classList.add("color-picker");
+    picker.setAttribute("role", "group");
     picker.setAttribute("aria-label", "Cambiar color de la nota");
 
     // Menú desplegable (visible en ≤400px)
     const colorMenu = document.createElement("div");
     colorMenu.classList.add("color-menu");
+    colorMenu.setAttribute("role", "group");
     colorMenu.setAttribute("aria-label", "Cambiar color de la nota");
 
     const trigger = document.createElement("button");
@@ -272,7 +282,6 @@ class NoteManager {
 
     const panel = document.createElement("div");
     panel.classList.add("color-menu-panel");
-    panel.setAttribute("role", "menu");
 
     // Cerrar al hacer clic fuera
     document.addEventListener("click", (e) => {
@@ -309,7 +318,6 @@ class NoteManager {
       dotMenu.style.background = this._colorVar(name);
       dotMenu.title = "Cambiar a este color";
       dotMenu.setAttribute("aria-label", `Color ${name}`);
-      dotMenu.setAttribute("role", "menuitem");
       dotMenu.addEventListener("mousedown", (e) => e.stopPropagation());
       dotMenu.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -325,7 +333,7 @@ class NoteManager {
 
     this._makeDraggable(note);
 
-    note.appendChild(img);
+    note.appendChild(removeButton);
     note.appendChild(textArea);
     note.appendChild(lineCount);
     note.appendChild(picker);
@@ -483,29 +491,28 @@ class NoteManager {
 
   _showStorageWarning() {
     // Reutilizar el modal existente con un mensaje diferente
-    const overlay = document.getElementById("modal-overlay");
     const title   = document.getElementById("modal-title");
     const confirm = document.getElementById("modal-confirm");
     const cancel  = document.getElementById("modal-cancel");
 
     const originalTitle   = title.textContent;
     const originalConfirm = confirm.textContent;
+    const originalCancelHidden = cancel.hidden;
 
     title.textContent   = "No hay espacio para guardar. Eliminá algunas notas para continuar.";
     confirm.textContent = "Entendido";
-    cancel.hidden       = true;
-
-    overlay.hidden = false;
-    confirm.focus();
 
     const cleanup = () => {
-      overlay.hidden        = true;
       title.textContent     = originalTitle;
       confirm.textContent   = originalConfirm;
-      cancel.hidden         = false;
-      confirm.removeEventListener("click", cleanup);
+      cancel.hidden         = originalCancelHidden;
     };
-    confirm.addEventListener("click", cleanup, { once: true });
+
+    this._openModal({
+      onConfirm: cleanup,
+      onClose: cleanup,
+      hideCancel: true,
+    });
   }
 
   loadNotes() {
@@ -558,6 +565,60 @@ class NoteManager {
     });
   }
 
+  _openModal({ onConfirm = null, onClose = null, hideCancel = false } = {}) {
+    const overlay = document.getElementById("modal-overlay");
+    const confirm = document.getElementById("modal-confirm");
+    const cancel  = document.getElementById("modal-cancel");
+
+    this._modalAction = onConfirm;
+    this._modalOnClose = onClose;
+    this._modalReturnFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+
+    cancel.hidden = hideCancel;
+    overlay.hidden = false;
+    confirm.focus();
+  }
+
+  _closeModal({ confirmed = false } = {}) {
+    const overlay = document.getElementById("modal-overlay");
+    const cancel  = document.getElementById("modal-cancel");
+    const action = confirmed ? this._modalAction : null;
+    const onClose = this._modalOnClose;
+    const returnFocus = this._modalReturnFocus;
+
+    overlay.hidden = true;
+    cancel.hidden = false;
+    this._modalAction = null;
+    this._modalOnClose = null;
+    this._modalReturnFocus = null;
+
+    if (onClose) onClose();
+    if (action) action();
+    if (returnFocus?.isConnected) returnFocus.focus();
+  }
+
+  _trapModalFocus(e) {
+    if (e.key !== "Tab") return;
+
+    const overlay = document.getElementById("modal-overlay");
+    const focusable = [...overlay.querySelectorAll("button:not([hidden])")]
+      .filter(el => !el.disabled && el.offsetParent !== null);
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last  = focusable[focusable.length - 1];
+
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
   _bindModal() {
     const overlay = document.getElementById("modal-overlay");
     const confirm = document.getElementById("modal-confirm");
@@ -565,14 +626,24 @@ class NoteManager {
 
     document.getElementById("clear-all").addEventListener("click", () => {
       if (this._notes.length === 0) return;
-      overlay.hidden = false;
-      confirm.focus();
+      this._openModal({ onConfirm: () => this.clearAll() });
     });
-    confirm.addEventListener("click", () => { overlay.hidden = true; this.clearAll(); });
-    cancel.addEventListener("click",  () => { overlay.hidden = true; });
-    overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.hidden = true; });
+    confirm.addEventListener("click", () => {
+      this._closeModal({ confirmed: true });
+    });
+    cancel.addEventListener("click",  () => {
+      this._closeModal();
+    });
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) this._closeModal();
+    });
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && !overlay.hidden) overlay.hidden = true;
+      if (overlay.hidden) return;
+      if (e.key === "Escape") {
+        this._closeModal();
+        return;
+      }
+      this._trapModalFocus(e);
     });
   }
 
