@@ -32,6 +32,11 @@ class NoteManager {
     return (Math.random() * 4 - 2).toFixed(2);
   }
 
+  _newId() {
+    if (crypto?.randomUUID) return crypto.randomUUID();
+    return `note-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
   _colorVar(name) {
     return `var(--${name})`;
   }
@@ -200,7 +205,7 @@ class NoteManager {
 
   // ── Crear nota ─────────────────────────────────────────────────────────────
 
-  createNote(content = "", color = null, id = crypto.randomUUID(), rotation = null) {
+  createNote(content = "", color = null, id = this._newId(), rotation = null) {
     if (this._notes.length >= NoteManager.MAX_NOTES) {
       this._showStorageWarning();
       return null;
@@ -530,7 +535,7 @@ class NoteManager {
       parsed.slice(0, NoteManager.MAX_NOTES).forEach(n => {
         const content  = typeof n.content  === "string" ? n.content.slice(0, 10000) : "";
         const color    = typeof n.color    === "string" ? n.color                   : null;
-        const id       = typeof n.id       === "string" ? n.id.slice(0, 64)         : crypto.randomUUID();
+        const id       = typeof n.id       === "string" ? n.id.slice(0, 64)         : this._newId();
         const rotation = isFinite(parseFloat(n.rotation)) ? n.rotation              : this._randomRotation();
         this.createNote(content, color, id, rotation);
       });

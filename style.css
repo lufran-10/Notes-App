@@ -21,6 +21,7 @@ button, input, select, textarea {
   --purple: #ccaafe;
 
   --toolbar-bg:     rgba(255, 255, 255, 0.75);
+  --toolbar-bg-solid: rgba(255, 255, 255, 0.92);
   --toolbar-border: rgba(0, 0, 0, 0.10);
   --toolbar-shadow: 0 2px 16px rgba(0,0,0,0.10);
   --toolbar-offset: 74px;
@@ -59,6 +60,7 @@ button, input, select, textarea {
     --purple: #A288D3;
 
     --toolbar-bg:     rgba(28, 28, 28, 0.88);
+    --toolbar-bg-solid: rgba(28, 28, 28, 0.96);
     --toolbar-border: rgba(255,255,255,0.08);
     --toolbar-shadow: 0 2px 16px rgba(0,0,0,0.50);
     --btn-text:       #eee;
@@ -121,6 +123,12 @@ body {
   box-shadow: var(--toolbar-shadow);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .toolbar {
+    background: var(--toolbar-bg-solid);
+  }
 }
 
 .toolbar button {
