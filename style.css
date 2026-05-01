@@ -37,9 +37,9 @@ button, input, select, textarea {
   --help-shadow:    0 8px 32px rgba(0,0,0,0.15);
   --help-text:      #333;
   --help-item-hover:rgba(0,0,0,0.04);
-  --note-size:      300px;
+  --note-size:      clamp(202px, 72vw, 300px);
   --note-padding:   20px 20px 30px;
-  --note-font-size: 29px;
+  --note-font-size: clamp(22px, 7vw, 29px);
   --thumbtack-size: 46px;
   --thumbtack-top:  -14px;
   --board-gap-row:  50px;
@@ -307,7 +307,7 @@ body {
   width: 90%;
   max-width: 1500px;
   margin: 30px auto;
-  min-height: calc(100vh - 140px);
+  min-height: calc(100vh - var(--toolbar-offset) - 66px);
   padding-bottom: 50px;
 }
 
@@ -538,9 +538,7 @@ body {
 @media screen and (max-width: 640px) {
   :root {
     --toolbar-offset: 66px;
-    --note-size: 260px;
     --note-padding: 16px 16px 26px;
-    --note-font-size: 26px;
     --thumbtack-size: 40px;
     --board-gap-row: 40px;
     --board-gap-col: 3%;
@@ -564,9 +562,7 @@ body {
 @media screen and (max-width: 400px) {
   :root {
     --toolbar-offset: 60px;
-    --note-size: 222px;
     --note-padding: 12px 16px 24px;
-    --note-font-size: 22px;
     --thumbtack-size: 36px;
     --thumbtack-top: -12px;
     --board-gap-row: 36px;
@@ -584,7 +580,6 @@ body {
 }
 @media screen and (max-width: 320px) {
   :root {
-    --note-size: 202px;
     --note-padding: 8px 12px 8px;
   }
   /* altura 202px: 202 - 8 - 8 = 186px útiles → floor(186/30.8) = 6 líneas */
