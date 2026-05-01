@@ -36,6 +36,13 @@ button, input, select, textarea {
   --help-shadow:    0 8px 32px rgba(0,0,0,0.15);
   --help-text:      #333;
   --help-item-hover:rgba(0,0,0,0.04);
+  --note-size:      300px;
+  --note-padding:   20px 20px 30px;
+  --note-font-size: 29px;
+  --thumbtack-size: 46px;
+  --thumbtack-top:  -14px;
+  --board-gap-row:  50px;
+  --board-gap-col:  5%;
 }
 
 /* ── Variables: modo oscuro ── */
@@ -289,10 +296,10 @@ body {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(auto-fill, 300px);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--note-size)), var(--note-size)));
   justify-content: center;
   align-content: start;
-  gap: 50px 5%;
+  gap: var(--board-gap-row) var(--board-gap-col);
   width: 90%;
   max-width: 1500px;
   margin: 30px auto;
@@ -304,9 +311,9 @@ body {
 .note {
   position: relative;
   color: var(--note-text);
-  width: 300px;
-  height: 300px;
-  padding: 20px 20px 30px;
+  width: min(100%, var(--note-size));
+  aspect-ratio: 1;
+  padding: var(--note-padding);
   border-radius: 2px;
   box-shadow: rgba(0,0,0,0.16) 0px 3px 6px, rgba(0,0,0,0.23) 0px 3px 6px;
   transition: box-shadow 0.22s, transform 0.22s;
@@ -339,9 +346,9 @@ body {
 /* ── Chinche ── */
 .note .thumbtack-button {
   position: absolute;
-  width: 46px;
-  height: 46px;
-  top: -14px;
+  width: var(--thumbtack-size);
+  height: var(--thumbtack-size);
+  top: var(--thumbtack-top);
   left: 50%;
   transform: translateX(-50%);
   border: 0;
@@ -494,7 +501,7 @@ body {
   outline: none;
   width: 100%;
   height: 100%;
-  font-size: 29px;
+  font-size: var(--note-font-size);
   overflow: hidden;
   cursor: text;
   user-select: text;
@@ -534,44 +541,53 @@ body {
    RESPONSIVE
    ════════════════════════════ */
 @media screen and (max-width: 1024px) {
-  .container { gap: 50px 4%; }
+  :root { --board-gap-col: 4%; }
 }
 @media screen and (max-width: 640px) {
+  :root {
+    --note-size: 260px;
+    --note-padding: 16px 16px 26px;
+    --note-font-size: 26px;
+    --thumbtack-size: 40px;
+    --board-gap-row: 40px;
+    --board-gap-col: 3%;
+  }
   body { padding-top: 66px; }
   html, body { overflow-x: hidden; }
   .toolbar { padding: 6px 12px; gap: 4px; }
   .toolbar button span { display: none; }
   .toolbar button { padding: 7px 10px; }
   .toolbar button i { font-size: 15px; }
-  .note { width: 260px; height: 260px; padding: 16px 16px 26px; }
-  .note .thumbtack-button { width: 40px; height: 40px; }
-  .note .input { font-size: 26px; }
   .container {
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     justify-items: center;
-    gap: 40px 3%;
     width: 95%;
   }
 }
 @media screen and (max-width: 400px) {
+  :root {
+    --note-size: 222px;
+    --note-padding: 12px 16px 24px;
+    --note-font-size: 22px;
+    --thumbtack-size: 36px;
+    --thumbtack-top: -12px;
+    --board-gap-row: 36px;
+    --board-gap-col: 3%;
+  }
   body { padding-top: 60px; }
   /* altura 222px: 222 - 12 - 24 = 186px útiles → floor(186/30.8) = 6 líneas */
-  .note { width: 222px; height: 222px; padding: 12px 16px 24px; }
-  .note .thumbtack-button { width: 36px; height: 36px; top: -12px; }
-  .note .input { font-size: 22px; }
   .note .char-count { font-size: 11px; }
   .container {
-    grid-template-columns: repeat(auto-fill, minmax(222px, 1fr));
     justify-items: center;
-    gap: 36px 3%;
     width: 100%;
     margin: 20px auto;
   }
 }
 @media screen and (max-width: 320px) {
+  :root {
+    --note-size: 202px;
+    --note-padding: 8px 12px 8px;
+  }
   /* altura 202px: 202 - 8 - 8 = 186px útiles → floor(186/30.8) = 6 líneas */
-  .note { width: 202px; height: 202px; padding: 8px 12px 8px; }
-  .note .input { font-size: 22px; }
   .modal { padding: 20px 18px; }
-  .container { grid-template-columns: repeat(auto-fill, minmax(202px, 1fr)); justify-items: center; }
+  .container { justify-items: center; }
 }
