@@ -1,5 +1,52 @@
-// ── NoteManager ──────────────────────────────────────────────────────────────
+// ── NoteStore ─────────────────────────────────────────────────────────────────
+// Responsabilidad única: persistencia y estado de las notas en localStorage.
+class NoteStore {
+  static get MAX_NOTES()         { return 50; }
+  static get MAX_STORAGE_BYTES() { return 4 * 1024 * 1024; }
+  static get MAX_CONTENT_LENGTH(){ return 10_000; }
+  static get MAX_ID_LENGTH()     { return 64; }
+  static get STORAGE_KEY()       { return "sticky-notes"; }
+
+  load() {
+    const saved = localStorage.getItem(NoteStore.STORAGE_KEY);
+    if (!saved) return [];
+    if (saved.length > NoteStore.MAX_STORAGE_BYTES) {
+      localStorage.removeItem(NoteStore.STORAGE_KEY);
+      return [];
+    }
+    try {
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) throw new Error("formato inválido");
+      return parsed.slice(0, NoteStore.MAX_NOTES);
+    } catch {
+      localStorage.removeItem(NoteStore.STORAGE_KEY);
+      return [];
+    }
+  }
+
+  save(notes) {
+    try {
+      localStorage.setItem(NoteStore.STORAGE_KEY, JSON.stringify(notes));
+      return true;
+    } catch (e) {
+      if (e instanceof DOMException && (
+        e.name === "QuotaExceededError" ||
+        e.name === "NS_ERROR_DOM_QUOTA_REACHED"
+      )) return false;
+      throw e;
+    }
+  }
+
+  clear() {
+    localStorage.removeItem(NoteStore.STORAGE_KEY);
+  }
+}
+
+// ── NoteManager ───────────────────────────────────────────────────────────────
 class NoteManager {
+  // ── Constantes ───────────────────────────────────────────────────────────
+  static get SAVE_DEBOUNCE_MS()  { return 400; }
+
   constructor() {
     this.colors  = ["blue", "pink", "green", "yellow", "purple"];
     this.board   = document.getElementById("board");
@@ -10,16 +57,16 @@ class NoteManager {
       confirm: document.getElementById("modal-confirm"),
       cancel:  document.getElementById("modal-cancel"),
     };
+    this._store  = new NoteStore();
     this._darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
     this._dragEl = null;
     this._notes  = [];
-    this._modalAction = null;
-    this._modalOnClose = null;
+    this._modalAction      = null;
+    this._modalOnClose     = null;
     this._modalReturnFocus = null;
 
     this._bindToolbar();
     this._bindModal();
-    this._bindBoard();
     this._bindHelp();
     this._bindColorMenus();
     this.loadNotes();
@@ -76,7 +123,7 @@ class NoteManager {
 
   _sanitizeContent(raw) {
     if (typeof raw !== "string") return "";
-    const clamped = raw.slice(0, 10000);
+    const clamped = raw.slice(0, NoteStore.MAX_CONTENT_LENGTH);
     const tmp = document.createElement("div");
     tmp.appendChild(document.createTextNode(clamped));
     return tmp.innerText || tmp.textContent || "";
@@ -124,10 +171,9 @@ class NoteManager {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // LÍMITE DE LÍNEAS — cada método tiene una sola responsabilidad
+  // LÍMITE DE LÍNEAS
   // ══════════════════════════════════════════════════════════════════════════
 
-  /** Devuelve funciones para guardar y restaurar un snapshot de nodos del DOM. */
   _createSnapshot(textArea) {
     let nodes = [];
     const save = () => {
@@ -142,11 +188,10 @@ class NoteManager {
       sel.removeAllRanges();
       sel.addRange(range);
     };
-    save(); // snapshot inicial
+    save();
     return { save, restore };
   }
 
-  /** Actualiza el texto del contador y aplica clases visuales de advertencia. */
   _updateLineCount(textArea, lineCount) {
     const cur = this._getCurrentLines(textArea);
     const max = this._getMaxLines(textArea);
@@ -157,10 +202,6 @@ class NoteManager {
     else if (pct >= 0.85) lineCount.classList.add("warning");
   }
 
-  /**
-   * Enlaza los eventos de teclado e input que impiden superar el límite de
-   * líneas. Recibe `isFull` (función), `snapshot` y `saveDebounced`.
-   */
   _bindInputGuards(textArea, { isFull, snapshot, saveDebounced, lineCount }) {
     const ALLOWED_KEYS = new Set([
       "Backspace","Delete","ArrowLeft","ArrowRight",
@@ -226,9 +267,8 @@ class NoteManager {
     });
   }
 
-  /** Punto de entrada: coordina snapshot, guards y contador. */
   _setupLineLimit(textArea, lineCount) {
-    const saveDebounced = this._debounce(() => this.saveNotes(), 400);
+    const saveDebounced = this._debounce(() => this.saveNotes(), NoteManager.SAVE_DEBOUNCE_MS);
     const snapshot = this._createSnapshot(textArea);
     const isFull   = () => this._getCurrentLines(textArea) > this._getMaxLines(textArea);
 
@@ -240,13 +280,13 @@ class NoteManager {
   // CONSTRUCCIÓN DEL DOM DE CADA NOTA
   // ══════════════════════════════════════════════════════════════════════════
 
-  /** Botón con chinche que elimina la nota al hacer clic. */
   _buildThumbTack() {
     const button = document.createElement("button");
     button.type  = "button";
     button.classList.add("thumbtack-button");
     button.title = "Eliminar nota";
     button.setAttribute("aria-label", "Eliminar nota");
+    // Evita que el mousedown inicie un drag sobre la nota
     button.addEventListener("mousedown", (e) => e.stopPropagation());
 
     const img     = document.createElement("img");
@@ -260,7 +300,6 @@ class NoteManager {
     return button;
   }
 
-  /** Área de texto editable con el contenido inicial. */
   _buildTextArea(content) {
     const textArea           = document.createElement("div");
     textArea.classList.add("input");
@@ -275,7 +314,6 @@ class NoteManager {
     return textArea;
   }
 
-  /** Picker de colores horizontal (visible en desktop). */
   _buildColorPicker(note, triggerButton) {
     const picker = document.createElement("div");
     picker.classList.add("color-picker");
@@ -292,7 +330,6 @@ class NoteManager {
     return picker;
   }
 
-  /** Menú desplegable de colores (visible en móvil / pantallas táctiles). */
   _buildColorMenu(note, colorName) {
     const colorMenu = document.createElement("div");
     colorMenu.classList.add("color-menu");
@@ -332,11 +369,11 @@ class NoteManager {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // CREAR NOTA — orquesta los builders anteriores
+  // CREAR NOTA
   // ══════════════════════════════════════════════════════════════════════════
 
   createNote(content = "", color = null, id = this._newId(), rotation = null) {
-    if (this._notes.length >= NoteManager.MAX_NOTES) {
+    if (this._notes.length >= NoteStore.MAX_NOTES) {
       this._showStorageWarning();
       return null;
     }
@@ -344,7 +381,6 @@ class NoteManager {
     const colorName = this._colorName(color ?? this._randomColor());
     const rot       = parseFloat(rotation) || parseFloat(this._randomRotation());
 
-    // Contenedor principal
     const note = document.createElement("div");
     note.classList.add("note");
     note.style.background = this._colorVar(colorName);
@@ -355,15 +391,15 @@ class NoteManager {
     note.setAttribute("role", "article");
     note.setAttribute("aria-label", "Nota adhesiva");
 
-    // Piezas del DOM
-    const removeButton        = this._buildThumbTack();
-    const textArea            = this._buildTextArea(content);
-    const lineCount           = document.createElement("span");
+    const removeButton           = this._buildThumbTack();
+    const textArea               = this._buildTextArea(content);
+    const lineCount              = document.createElement("span");
     lineCount.classList.add("char-count");
     const { colorMenu, trigger } = this._buildColorMenu(note, colorName);
-    const picker              = this._buildColorPicker(note, trigger);
+    const picker                 = this._buildColorPicker(note, trigger);
 
-    // Vincular eliminar al botón de la chinche
+    // Un único listener de eliminación, directo en el botón.
+    // No se duplica con ningún listener de delegación en el board.
     removeButton.addEventListener("click", (e) => {
       e.stopPropagation();
       this._removeNote(note);
@@ -433,7 +469,6 @@ class NoteManager {
     this._bindTouchDrag(note);
   }
 
-  /** Drag & Drop con mouse (desktop). */
   _bindMouseDrag(note) {
     note.addEventListener("dragstart", (e) => {
       this._dragEl = note;
@@ -462,7 +497,6 @@ class NoteManager {
     });
   }
 
-  /** Drag & Drop con touch (móvil). */
   _bindTouchDrag(note) {
     let _touchMoved = false;
 
@@ -507,9 +541,6 @@ class NoteManager {
   // GUARDAR / CARGAR
   // ══════════════════════════════════════════════════════════════════════════
 
-  static get MAX_NOTES() { return 50; }
-  static get MAX_STORAGE_BYTES() { return 4 * 1024 * 1024; }
-
   saveNotes() {
     const data = this._notes.map(note => {
       const raw  = note.querySelector(".input").innerText || "";
@@ -521,38 +552,19 @@ class NoteManager {
         rotation: note.dataset.rotation,
       };
     });
-    try {
-      localStorage.setItem("sticky-notes", JSON.stringify(data));
-    } catch (e) {
-      if (e instanceof DOMException && (
-        e.name === "QuotaExceededError" ||
-        e.name === "NS_ERROR_DOM_QUOTA_REACHED"
-      )) {
-        this._showStorageWarning();
-      }
-    }
+    const ok = this._store.save(data);
+    if (!ok) this._showStorageWarning();
   }
 
   loadNotes() {
-    const saved = localStorage.getItem("sticky-notes");
-    if (!saved) return;
-    if (saved.length > NoteManager.MAX_STORAGE_BYTES) {
-      localStorage.removeItem("sticky-notes");
-      return;
-    }
-    try {
-      const parsed = JSON.parse(saved);
-      if (!Array.isArray(parsed)) throw new Error("formato inválido");
-      parsed.slice(0, NoteManager.MAX_NOTES).forEach(n => {
-        const content  = typeof n.content  === "string" ? n.content.slice(0, 10000) : "";
-        const color    = typeof n.color    === "string" ? n.color                   : null;
-        const id       = typeof n.id       === "string" ? n.id.slice(0, 64)         : this._newId();
-        const rotation = isFinite(parseFloat(n.rotation)) ? n.rotation              : this._randomRotation();
-        this.createNote(content, color, id, rotation);
-      });
-    } catch {
-      localStorage.removeItem("sticky-notes");
-    }
+    const entries = this._store.load();
+    entries.forEach(n => {
+      const content  = typeof n.content  === "string" ? n.content.slice(0, NoteStore.MAX_CONTENT_LENGTH) : "";
+      const color    = typeof n.color    === "string" ? n.color                                          : null;
+      const id       = typeof n.id       === "string" ? n.id.slice(0, NoteStore.MAX_ID_LENGTH)           : this._newId();
+      const rotation = isFinite(parseFloat(n.rotation)) ? n.rotation                                     : this._randomRotation();
+      this.createNote(content, color, id, rotation);
+    });
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -560,7 +572,7 @@ class NoteManager {
   // ══════════════════════════════════════════════════════════════════════════
 
   clearAll() {
-    localStorage.removeItem("sticky-notes");
+    this._store.clear();
     this._notes.forEach(n => {
       n.classList.add("removing");
       n.addEventListener("animationend", () => n.remove(), { once: true });
@@ -573,10 +585,6 @@ class NoteManager {
   // MODAL
   // ══════════════════════════════════════════════════════════════════════════
 
-  /**
-   * Abre el modal con mensaje y texto de confirmación configurables.
-   * Elimina la necesidad de guardar/restaurar estado manualmente.
-   */
   _openModal({
     message     = "¿Eliminar todas las notas?",
     confirmText = "Sí, eliminar",
@@ -638,7 +646,7 @@ class NoteManager {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // PANEL DE AYUDA (disclosure)
+  // PANEL DE AYUDA
   // ══════════════════════════════════════════════════════════════════════════
 
   _setDisclosure(panel, trigger, open) {
@@ -722,16 +730,6 @@ class NoteManager {
     });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") this._closeColorMenus();
-    });
-  }
-
-  _bindBoard() {
-    this.board.addEventListener("click", (e) => {
-      const thumbtack = e.target.closest(".thumbtack");
-      if (thumbtack) {
-        const note = thumbtack.closest(".note");
-        if (note) this._removeNote(note);
-      }
     });
   }
 }
