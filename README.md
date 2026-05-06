@@ -1,45 +1,60 @@
 # 📌 Sticky Notes
 
-Una aplicación web de notas adhesivas digitales, construida con HTML, CSS y JavaScript vanilla. Permite crear, editar y eliminar notas sobre un tablero de corcho interactivo.
+Una aplicación web de notas adhesivas construida con HTML, CSS y JavaScript vanilla. Permite crear, editar, eliminar y mover notas dentro de un tablero de corcho.
 
 ---
 
 ## 🖥️ Vista previa
 
-Las notas se muestran sobre un fondo de tablero de corcho y se fijan con una chinche blanca. Cada nota tiene un color aleatorio y es completamente editable.
+Las notas aparecen sobre un fondo de tablero de corcho y cada nota tiene una chinche visible. El contenido se guarda automáticamente en el navegador.
 
 ---
 
 ## ✨ Características
 
-- ➕ **Crear notas** con un solo clic
-- ✏️ **Editar notas** directamente en la pantalla (texto editable)
-- 🗑️ **Eliminar notas** haciendo clic en la chinche
-- 🎨 **Colores aleatorios** para cada nota (azul, rosa, verde, amarillo y violeta)
-- 💾 **Persistencia automática** mediante `localStorage` — las notas se conservan al recargar la página
-- 📱 **Diseño responsive** adaptado a distintos tamaños de pantalla
+- ➕ Crear nuevas notas con un clic
+- ✏️ Editar notas directamente en la interfaz
+- 🗑️ Eliminar notas haciendo click en la chinche
+- 🎨 Cambiar color de cada nota
+- 🚚 Mover notas arrastrandolas
+- 💾 Guardado automático en `localStorage`
+- 📱 Diseño responsive para distintos tamaños de pantalla
+- 🌗 Soporte de modo oscuro con colores adaptados
 
 ---
 
 ## 🗂️ Estructura del proyecto
 
 ```
-sticky-notes/
+Notes-App/
 ├── index.html          # Estructura principal de la app
 ├── style.css           # Estilos y diseño visual
 ├── script.js           # Lógica de la aplicación
-└── images/
-    ├── cork-board.jpg  # Fondo del tablero de corcho
-    └── white-thumbtack.png  # Ícono de chinche para eliminar notas
+├── README.md           # Documentación del proyecto
+└── images/             # Recursos de la app
+    ├── cork-board.jpg
+    ├── cork-board.webp
+    ├── white-thumbtack.png
+    ├── black-thumbtack.png
+    └── icons/          # Íconos SVG usados en la interfaz
 ```
+
+---
+
+## 🛠️ Tecnologías utilizadas
+
+- HTML5
+- CSS3
+- JavaScript (ES6+)
+- Google Fonts (`Caveat`)
 
 ---
 
 ## 🚀 Cómo usar
 
-1. Cloná o descargá el repositorio.
-2. Abrí el archivo `index.html` en tu navegador.
-3. ¡Listo! No requiere instalación ni dependencias externas.
+1. Clona o descarga el repositorio.
+2. Abre `index.html` en tu navegador.
+3. Empieza a crear notas.
 
 ```bash
 git clone https://github.com/tu-usuario/sticky-notes.git
@@ -49,54 +64,16 @@ cd sticky-notes
 
 ---
 
-## 🛠️ Tecnologías utilizadas
-
-| Tecnología | Uso |
-|---|---|
-| HTML5 | Estructura de la app |
-| CSS3 | Estilos, animaciones y diseño responsive |
-| JavaScript (ES6+) | Lógica, DOM y `localStorage` |
-| [Font Awesome 6](https://fontawesome.com/) | Ícono del botón de crear |
-| [Google Fonts – Caveat](https://fonts.google.com/specimen/Caveat) | Tipografía estilo manuscrito |
-
----
-
-## 🎨 Colores disponibles
-
-| Color | Hex |
-|---|---|
-| 🔵 Azul | `#b5e9ec` |
-| 🩷 Rosa | `#fec3dd` |
-| 🟢 Verde | `#bbe9ba` |
-| 🟡 Amarillo | `#f9e558` |
-| 🟣 Violeta | `#ccaafe` |
-
----
-
-## 📋 Cómo funciona
-
-1. Al hacer clic en el botón **`+`**, se genera una nueva nota con un color al azar.
-2. Hacé clic dentro de la nota para editarla. Los cambios se guardan automáticamente.
-3. Hacé clic en la **chinche blanca** en la parte superior de una nota para eliminarla.
-4. Todas las notas se almacenan en `localStorage`, por lo que persisten entre sesiones.
-
----
-
 ## 📱 Responsive
 
-La app se adapta a distintos tamaños de pantalla:
+La aplicación se adapta a varias resoluciones:
 
-- **> 800px**: notas de 300×300 px
-- **≤ 800px**: notas de 250×250 px
-- **≤ 300px**: notas de 200×200 px
+- Notas grandes en pantallas amplias
+- Notas compactas en dispositivos móviles
+- Control de color y edición optimizados para pantalla táctil
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto es de uso libre para fines educativos y personales.
-
-
-## Futuros cambios:
-
-- Sigo sin poder escribir ningún caracter. (volvi al ultimo script antes de este que rompio todo)
+Uso libre para fines educativos y personales.
