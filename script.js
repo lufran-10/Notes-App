@@ -142,6 +142,30 @@ class NoteManager {
     });
   }
 
+  _showToast(message, duration = 2500) {
+    const toast = document.createElement("div");
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1000;
+      animation: slideUp 0.3s ease;
+      pointer-events: none;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.style.animation = "slideDown 0.3s ease";
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
   // CÁLCULO DE LÍNEAS
   // ══════════════════════════════════════════════════════════════════════════
@@ -235,7 +259,6 @@ class NoteManager {
 
     textArea.addEventListener("paste", (e) => {
       e.preventDefault();
-      if (isFull()) return;
 
       const preNodes = Array.from(textArea.childNodes).map(n => n.cloneNode(true));
       const pasted   = (e.clipboardData || window.clipboardData).getData("text/plain");
@@ -250,14 +273,13 @@ class NoteManager {
         sel.addRange(range);
       }
 
-      if (this._getCurrentLines(textArea) > this._getMaxLines(textArea)) {
+      const maxLines = this._getMaxLines(textArea);
+      const currentLines = this._getCurrentLines(textArea);
+      
+      if (currentLines > maxLines) {
+        // Excedió el límite: restaurar estado anterior sin pegar
         textArea.replaceChildren(...preNodes.map(n => n.cloneNode(true)));
-        const range = document.createRange();
-        const sel2  = window.getSelection();
-        range.selectNodeContents(textArea);
-        range.collapse(false);
-        sel2.removeAllRanges();
-        sel2.addRange(range);
+        this._showToast("El texto es muy largo. No se puede pegar.");
       } else {
         snapshot.save();
       }
