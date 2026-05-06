@@ -95,17 +95,24 @@ html, body { height: 100%; }
 
 body {
   font-family: "Caveat", cursive; /* herencia global — evita repetir en cada regla */
-  background: url("./images/cork-board.jpg") no-repeat center center fixed;
+  min-height: 100vh;
+  padding-top: var(--toolbar-offset);
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: url("./images/cork-board.jpg") no-repeat center center;
   background-image: image-set(
     url("./images/cork-board.webp") type("image/webp"),
     url("./images/cork-board.jpg") type("image/jpeg")
   );
   background-size: cover;
-  min-height: 100vh;
-  padding-top: var(--toolbar-offset);
-}
-@media (max-width: 640px) {
-  body { background-attachment: scroll; } /* fix iOS Safari con fixed */
+  background-attachment: fixed;
+  z-index: -1;
+  pointer-events: none;
 }
 
 /* ── Overlay oscuro (solo dark mode) ── */
