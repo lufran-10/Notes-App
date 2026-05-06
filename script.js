@@ -147,8 +147,13 @@ class NoteManager {
   // ══════════════════════════════════════════════════════════════════════════
 
   _getLineHeight(textArea) {
-    const fs = parseFloat(getComputedStyle(textArea).fontSize);
-    return Math.round(fs * 1.4);
+    const style = getComputedStyle(textArea);
+    const lineHeight = style.lineHeight;
+    if (lineHeight && lineHeight.endsWith("px")) {
+      return Math.round(parseFloat(lineHeight));
+    }
+    const fontSize = parseFloat(style.fontSize);
+    return Math.round(fontSize * 1.3);
   }
 
   _getMaxLines(textArea) {
