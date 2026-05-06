@@ -46,6 +46,7 @@ button, input, select, textarea {
   --color-dot-size: 17px;
   --color-menu-trigger-size: 18px;
   --color-menu-dot-size: 26px;
+  --drag-handle-size: 32px;
 }
 
 /* ── Variables: modo oscuro ── */
@@ -408,6 +409,40 @@ body {
   filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
 }
 
+/* ── Drag handle (solo touch/mobile) ── */
+.drag-handle {
+  /* Oculto en desktop — el drag de mouse funciona desde toda la nota */
+  display: none;
+}
+
+@media (hover: none), (pointer: coarse), screen and (max-width: 400px) {
+  .drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: var(--drag-handle-size);
+    height: var(--drag-handle-size);
+    border-radius: 6px;
+    cursor: grab;
+    touch-action: none; /* evita que el browser tome el scroll en este elemento */
+    opacity: 0.35;
+    transition: opacity 0.15s, background 0.15s;
+    z-index: 3;
+    /* Ícono de grip */
+    background-color: rgba(0, 0, 0, 0.55);
+    -webkit-mask: url("./images/icons/grip-vertical-solid.svg") center / 12px 20px no-repeat;
+    mask: url("./images/icons/grip-vertical-solid.svg") center / 12px 20px no-repeat;
+  }
+
+  .drag-handle:active {
+    opacity: 0.75;
+    cursor: grabbing;
+  }
+}
+
 /* ── Accesibilidad: reducir movimiento ── */
 @media (prefers-reduced-motion: reduce) {
   /* Desactivar todas las animaciones y transiciones */
@@ -457,6 +492,7 @@ body {
   :root {
     --color-menu-trigger-size: 28px;
     --color-menu-dot-size: 28px;
+    --drag-handle-size: 32px;
   }
 
   .note .color-picker   { display: none; }
@@ -482,6 +518,8 @@ body {
   .note .color-menu-trigger:hover        { transform: scale(1.2); border-color: rgba(0,0,0,0.5); }
   .note .color-menu-trigger:focus-visible { outline: 2px solid #444; outline-offset: 2px; }
 
+  /* Reservar espacio para el handle en la esquina superior derecha
+     y para el menú de color en la esquina inferior derecha */
   .note .input {
     padding-right: calc(var(--color-menu-trigger-size) + 6px);
     padding-bottom: calc(var(--color-menu-trigger-size) + 2px);
@@ -587,6 +625,10 @@ body {
   .note .color-menu-panel {
     background: rgba(40,40,40,0.95);
   }
+  /* Handle más visible en dark mode */
+  .drag-handle {
+    background-color: rgba(0, 0, 0, 0.70);
+  }
 }
 @media screen and (max-width: 400px) {
   :root {
@@ -598,6 +640,7 @@ body {
     --board-gap-col: 3%;
     --color-menu-trigger-size: 28px;
     --color-menu-dot-size: 28px;
+    --drag-handle-size: 32px;
   }
   /* altura 222px: 222 - 12 - 24 = 186px útiles → floor(186/30.8) = 6 líneas */
   .note .char-count { font-size: 11px; }

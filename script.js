@@ -300,6 +300,16 @@ class NoteManager {
     return button;
   }
 
+  _buildDragHandle() {
+    const handle = document.createElement("div");
+    handle.classList.add("drag-handle");
+    handle.setAttribute("aria-hidden", "true");
+    handle.title = "Mover nota";
+    // El handle no debe iniciar el drag de mouse (ese funciona desde toda la nota)
+    handle.addEventListener("mousedown", (e) => e.stopPropagation());
+    return handle;
+  }
+
   _buildTextArea(content) {
     const textArea           = document.createElement("div");
     textArea.classList.add("input");
@@ -343,6 +353,7 @@ class NoteManager {
     trigger.setAttribute("aria-label", "Cambiar color de la nota");
     trigger.setAttribute("aria-expanded", "false");
     trigger.addEventListener("mousedown", (e) => e.stopPropagation());
+    trigger.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
     trigger.addEventListener("click", (e) => {
       e.stopPropagation();
       const willOpen = !colorMenu.classList.contains("open");
@@ -397,6 +408,7 @@ class NoteManager {
     lineCount.classList.add("char-count");
     const { colorMenu, trigger } = this._buildColorMenu(note, colorName);
     const picker                 = this._buildColorPicker(note, trigger);
+    const dragHandle             = this._buildDragHandle();
 
     // Un único listener de eliminación, directo en el botón.
     // No se duplica con ningún listener de delegación en el board.
@@ -412,6 +424,7 @@ class NoteManager {
     note.appendChild(lineCount);
     note.appendChild(picker);
     note.appendChild(colorMenu);
+    note.appendChild(dragHandle);
     this.board.appendChild(note);
     this._notes.push(note);
 
@@ -438,6 +451,7 @@ class NoteManager {
     button.title = "Cambiar a este color";
     button.setAttribute("aria-label", `Color ${name}`);
     button.addEventListener("mousedown", (e) => e.stopPropagation());
+    button.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
     button.addEventListener("click", (e) => {
       e.stopPropagation();
       onSelect(name);
@@ -501,7 +515,8 @@ class NoteManager {
     let _touchMoved = false;
 
     note.addEventListener("touchstart", (e) => {
-      if (e.target.closest(".input")) return;
+      // Solo iniciar drag si el toque viene del handle dedicado
+      if (!e.target.closest(".drag-handle")) return;
       _touchMoved  = false;
       this._dragEl = note;
       note.style.animation = "none";
