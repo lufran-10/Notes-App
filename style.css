@@ -90,7 +90,17 @@ button, input, select, textarea {
 }
 
 /* ── Base ── */
-html { overflow-y: scroll; scroll-behavior: smooth; }
+html {
+  overflow-y: scroll;
+  scroll-behavior: smooth;
+  background: url("./images/cork-board.jpg") no-repeat center center;
+  background-image: image-set(
+    url("./images/cork-board.webp") type("image/webp"),
+    url("./images/cork-board.jpg") type("image/jpeg")
+  );
+  background-size: cover;
+  background-attachment: fixed;
+}
 html, body { height: 100%; }
 
 body {
