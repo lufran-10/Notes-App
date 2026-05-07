@@ -3,7 +3,7 @@
 class NoteStore {
   static get MAX_NOTES()         { return 50; }
   static get MAX_STORAGE_BYTES() { return 4 * 1024 * 1024; }
-  static get MAX_CONTENT_LENGTH(){ return 10_000; }
+  static get MAX_CONTENT_LENGTH(){ return 500; }
   static get MAX_ID_LENGTH()     { return 64; }
   static get STORAGE_KEY()       { return "sticky-notes"; }
 
@@ -167,143 +167,6 @@ class NoteManager {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // CÁLCULO DE LÍNEAS
-  // ══════════════════════════════════════════════════════════════════════════
-
-  _getLineHeight(textArea) {
-    const style = getComputedStyle(textArea);
-    const lineHeight = style.lineHeight;
-    if (lineHeight && lineHeight.endsWith("px")) {
-      return Math.round(parseFloat(lineHeight));
-    }
-    const fontSize = parseFloat(style.fontSize);
-    return Math.round(fontSize * 1.3);
-  }
-
-  _getMaxLines(textArea) {
-    const lh = this._getLineHeight(textArea);
-    return Math.max(1, Math.floor(textArea.clientHeight / lh));
-  }
-
-  _getCurrentLines(textArea) {
-    const lh = this._getLineHeight(textArea);
-    const ruler = document.createElement("span");
-    ruler.style.cssText = "display:block;visibility:hidden;pointer-events:none;";
-    Array.from(textArea.childNodes).forEach(node =>
-      ruler.appendChild(node.cloneNode(true))
-    );
-    if (!ruler.hasChildNodes()) ruler.appendChild(document.createElement("br"));
-    textArea.appendChild(ruler);
-    const h = ruler.getBoundingClientRect().height;
-    ruler.remove();
-    return Math.max(1, Math.round((h + 2) / lh));
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
-  // LÍMITE DE LÍNEAS
-  // ══════════════════════════════════════════════════════════════════════════
-
-  _createSnapshot(textArea) {
-    let nodes = [];
-    const save = () => {
-      nodes = Array.from(textArea.childNodes).map(n => n.cloneNode(true));
-    };
-    const restore = () => {
-      textArea.replaceChildren(...nodes.map(n => n.cloneNode(true)));
-      const range = document.createRange();
-      const sel   = window.getSelection();
-      range.selectNodeContents(textArea);
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    };
-    save();
-    return { save, restore };
-  }
-
-  _updateLineCount(textArea, lineCount) {
-    const cur = this._getCurrentLines(textArea);
-    const max = this._getMaxLines(textArea);
-    const pct = cur / max;
-    lineCount.textContent = `${cur}/${max}`;
-    lineCount.classList.remove("warning", "full");
-    if (pct >= 1)         lineCount.classList.add("full");
-    else if (pct >= 0.85) lineCount.classList.add("warning");
-  }
-
-  _bindInputGuards(textArea, { isFull, snapshot, saveDebounced, lineCount }) {
-    const ALLOWED_KEYS = new Set([
-      "Backspace","Delete","ArrowLeft","ArrowRight",
-      "ArrowUp","ArrowDown","Home","End","Escape","Tab",
-    ]);
-
-    textArea.addEventListener("keydown", (e) => {
-      if (ALLOWED_KEYS.has(e.key) || e.ctrlKey || e.metaKey) return;
-      if (isFull()) e.preventDefault();
-    });
-
-    textArea.addEventListener("beforeinput", (e) => {
-      if (!e.data) return;
-      if (isFull()) e.preventDefault();
-    });
-
-    textArea.addEventListener("input", () => {
-      if (this._getCurrentLines(textArea) > this._getMaxLines(textArea)) {
-        snapshot.restore();
-      } else {
-        snapshot.save();
-      }
-      this._updateLineCount(textArea, lineCount);
-      saveDebounced();
-    });
-
-    textArea.addEventListener("paste", (e) => {
-      e.preventDefault();
-
-      const preNodes = Array.from(textArea.childNodes).map(n => n.cloneNode(true));
-      const pasted   = (e.clipboardData || window.clipboardData).getData("text/plain");
-      const sel      = window.getSelection();
-
-      if (sel && sel.rangeCount) {
-        const range = sel.getRangeAt(0);
-        range.deleteContents();
-        range.insertNode(document.createTextNode(pasted));
-        range.collapse(false);
-        sel.removeAllRanges();
-        sel.addRange(range);
-      }
-
-      const maxLines = this._getMaxLines(textArea);
-      const currentLines = this._getCurrentLines(textArea);
-      
-      if (currentLines > maxLines) {
-        // Excedió el límite: restaurar estado anterior sin pegar
-        textArea.replaceChildren(...preNodes.map(n => n.cloneNode(true)));
-        this._showToast("El texto es muy largo. No se puede pegar.");
-      } else {
-        snapshot.save();
-      }
-
-      this._updateLineCount(textArea, lineCount);
-      saveDebounced();
-    });
-
-    textArea.addEventListener("focus", () => {
-      snapshot.save();
-      this._updateLineCount(textArea, lineCount);
-    });
-  }
-
-  _setupLineLimit(textArea, lineCount) {
-    const saveDebounced = this._debounce(() => this.saveNotes(), NoteManager.SAVE_DEBOUNCE_MS);
-    const snapshot = this._createSnapshot(textArea);
-    const isFull   = () => this._getCurrentLines(textArea) > this._getMaxLines(textArea);
-
-    this._bindInputGuards(textArea, { isFull, snapshot, saveDebounced, lineCount });
-    this._updateLineCount(textArea, lineCount);
-  }
-
-  // ══════════════════════════════════════════════════════════════════════════
   // CONSTRUCCIÓN DEL DOM DE CADA NOTA
   // ══════════════════════════════════════════════════════════════════════════
 
@@ -347,6 +210,16 @@ class NoteManager {
     textArea.setAttribute("aria-multiline", "true");
     textArea.addEventListener("mousedown",  (e) => e.stopPropagation());
     textArea.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+    
+    // Validar límite de caracteres al escribir
+    textArea.addEventListener("beforeinput", (e) => {
+      const currentLength = (textArea.innerText || "").length;
+      if (currentLength >= NoteStore.MAX_CONTENT_LENGTH && e.data) {
+        e.preventDefault();
+        this._showToast("Límite de caracteres alcanzado (500).");
+      }
+    });
+    
     textArea.innerText = this._sanitizeContent(content);
     return textArea;
   }
@@ -431,8 +304,6 @@ class NoteManager {
 
     const removeButton           = this._buildThumbTack();
     const textArea               = this._buildTextArea(content);
-    const lineCount              = document.createElement("span");
-    lineCount.classList.add("char-count");
     const { colorMenu, trigger } = this._buildColorMenu(note, colorName);
     const picker                 = this._buildColorPicker(note, trigger);
     const dragHandle             = this._buildDragHandle();
@@ -448,14 +319,12 @@ class NoteManager {
 
     note.appendChild(removeButton);
     note.appendChild(textArea);
-    note.appendChild(lineCount);
     note.appendChild(picker);
     note.appendChild(colorMenu);
     note.appendChild(dragHandle);
     this.board.appendChild(note);
     this._notes.push(note);
 
-    requestAnimationFrame(() => this._setupLineLimit(textArea, lineCount));
     this._updateCounter();
     return note;
   }
