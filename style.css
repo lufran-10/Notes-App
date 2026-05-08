@@ -5,9 +5,25 @@
   box-sizing: border-box;
 }
 
+button,
+[role="button"],
+a,
+.note,
+.drag-handle,
+.color-menu,
+.color-picker {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Los botones no heredan font-family automáticamente en ningún navegador */
 button, input, select, textarea {
   font-family: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
 }
 
 /* ── Variables: modo claro ── */
