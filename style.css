@@ -93,6 +93,7 @@ button, input, select, textarea {
 html {
   overflow-y: scroll;
   scroll-behavior: smooth;
+  min-height: 100%;
   background: url("./images/cork-board.jpg") no-repeat center center;
   background-image: image-set(
     url("./images/cork-board.webp") type("image/webp"),
@@ -100,14 +101,17 @@ html {
   );
   background-size: cover;
   background-attachment: fixed;
+  background-color: #9b6f43;
 }
-html, body { height: 100%; }
+html, body { min-height: 100%; }
 
 body {
   font-family: "Caveat", cursive; /* herencia global — evita repetir en cada regla */
   min-height: 100vh;
+  min-height: 100dvh;
   padding-top: var(--toolbar-offset);
   position: relative;
+  background: transparent;
 }
 
 body::before {
@@ -366,7 +370,23 @@ body::before {
   max-width: 1500px;
   margin: 30px auto;
   min-height: calc(100vh - var(--toolbar-offset) - 66px);
+  min-height: calc(100dvh - var(--toolbar-offset) - 66px);
   padding-bottom: 50px;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  html {
+    background-attachment: scroll;
+  }
+
+  body::before {
+    inset: 0 0 auto;
+    height: 100vh;
+    height: 100lvh;
+    min-height: 100dvh;
+    background-attachment: scroll;
+    transform: translateZ(0);
+  }
 }
 
 /* ── Nota ── */
