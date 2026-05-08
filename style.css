@@ -28,7 +28,7 @@ button {
 
 /* ── Variables: modo claro ── */
 :root {
-  --board-bg: url("./images/cork-board-960.jpg");
+  --board-bg: url("./images/cork-board-tile.webp");
   --blue:   #b5e9ec;
   --green:  #bbe9ba;
   --yellow: #f9e558;
@@ -107,21 +107,15 @@ button {
 }
 
 /* ── Base ── */
-@media (min-width: 800px) {
-  :root {
-    --board-bg: url("./images/cork-board-1440.jpg");
-  }
-}
-
 html {
   overflow-y: scroll;
   scroll-behavior: smooth;
   min-height: 100%;
   background-color: #9b6f43;
-  background-image: var(--board-bg), url("./images/cork-board-placeholder.jpg");
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: cover;
+  background-image: var(--board-bg);
+  background-repeat: repeat;
+  background-position: top left;
+  background-size: 512px 341px;
   background-attachment: fixed;
 }
 html, body { min-height: 100%; }
@@ -139,10 +133,10 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: var(--board-bg), url("./images/cork-board-placeholder.jpg");
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: cover;
+  background-image: var(--board-bg);
+  background-repeat: repeat;
+  background-position: top left;
+  background-size: 512px 341px;
   background-attachment: fixed;
   z-index: -1;
   pointer-events: none;
