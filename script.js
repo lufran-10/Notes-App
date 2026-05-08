@@ -194,7 +194,7 @@ class NoteManager {
     const handle = document.createElement("div");
     handle.classList.add("drag-handle");
     handle.setAttribute("aria-hidden", "true");
-    handle.title = "Mover nota";
+    handle.title = "Arrastrar para mover nota";
     // El handle no debe iniciar el drag de mouse (ese funciona desde toda la nota)
     handle.addEventListener("mousedown", (e) => e.stopPropagation());
     return handle;
