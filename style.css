@@ -221,7 +221,7 @@ body::before {
 .icon-pencil          { --icon-url: url("./images/icons/pencil-solid.svg"); }
 .icon-thumbtack       { --icon-url: url("./images/icons/thumbtack-solid.svg"); }
 .icon-palette         { --icon-url: url("./images/icons/palette-solid.svg"); }
-.icon-move            { --icon-url: url("./images/icons/move.svg"); }
+.icon-move            { --icon-url: url("./images/icons/hand-solid.svg"); }
 .icon-floppy-disk     { --icon-url: url("./images/icons/floppy-disk-solid.svg"); }
 .toolbar button .icon { font-size: 14px; }
 #create    { font-weight: 600; }
@@ -489,6 +489,14 @@ body::before {
 }
 
 @media (hover: none), (pointer: coarse), screen and (max-width: 400px) {
+  .help-list .icon-move {
+    --icon-url: url("./images/icons/grip-vertical-solid.svg");
+    width: 16px;
+    height: 18px;
+    -webkit-mask-size: 10px 18px;
+    mask-size: 10px 18px;
+  }
+
   .drag-handle {
     display: flex;
     align-items: center;
