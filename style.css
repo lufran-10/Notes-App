@@ -442,6 +442,10 @@ body::before {
   cursor: pointer;
   transition: transform 0.18s, filter 0.18s;
   z-index: 2;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 .note .thumbtack-button:focus-visible {
   outline: 2px solid currentColor;
@@ -454,6 +458,8 @@ body::before {
   height: 100%;
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
+  pointer-events: none;
+  -webkit-user-drag: none;
 }
 .note .thumbtack-button:hover {
   transform: translateX(-50%) scale(1.15) rotate(-15deg);
