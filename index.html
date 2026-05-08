@@ -4,7 +4,15 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- Preload de la imagen de fondo para que empiece a cargarse cuanto antes -->
-    <link rel="preload" href="./images/cork-board.webp" as="image" type="image/webp" />
+    <link
+      rel="preload"
+      href="./images/cork-board-960.jpg"
+      as="image"
+      type="image/jpeg"
+      fetchpriority="high"
+      imagesrcset="./images/cork-board-960.jpg 960w, ./images/cork-board-1440.jpg 1440w"
+      imagesizes="100vw"
+    />
     <!-- Preload de la chinche — es visible en cada nota desde el primer render -->
     <link rel="preload" href="./images/white-thumbtack.png" as="image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

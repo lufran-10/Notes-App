@@ -12,6 +12,7 @@ button, input, select, textarea {
 
 /* ── Variables: modo claro ── */
 :root {
+  --board-bg: url("./images/cork-board-960.jpg");
   --blue:   #b5e9ec;
   --green:  #bbe9ba;
   --yellow: #f9e558;
@@ -90,18 +91,22 @@ button, input, select, textarea {
 }
 
 /* ── Base ── */
+@media (min-width: 800px) {
+  :root {
+    --board-bg: url("./images/cork-board-1440.jpg");
+  }
+}
+
 html {
   overflow-y: scroll;
   scroll-behavior: smooth;
   min-height: 100%;
-  background: url("./images/cork-board.jpg") no-repeat center center;
-  background-image: image-set(
-    url("./images/cork-board.webp") type("image/webp"),
-    url("./images/cork-board.jpg") type("image/jpeg")
-  );
+  background-color: #9b6f43;
+  background-image: var(--board-bg);
+  background-repeat: no-repeat;
+  background-position: center center;
   background-size: cover;
   background-attachment: fixed;
-  background-color: #9b6f43;
 }
 html, body { min-height: 100%; }
 
@@ -118,11 +123,9 @@ body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background: url("./images/cork-board.jpg") no-repeat center center;
-  background-image: image-set(
-    url("./images/cork-board.webp") type("image/webp"),
-    url("./images/cork-board.jpg") type("image/jpeg")
-  );
+  background-image: var(--board-bg);
+  background-repeat: no-repeat;
+  background-position: center center;
   background-size: cover;
   background-attachment: fixed;
   z-index: -1;
