@@ -210,6 +210,10 @@ class NoteManager {
     textArea.setAttribute("aria-multiline", "true");
     textArea.addEventListener("mousedown",  (e) => e.stopPropagation());
     textArea.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+    textArea.addEventListener(
+      "input",
+      this._debounce(() => this.saveNotes(), NoteManager.SAVE_DEBOUNCE_MS)
+    );
     
     // Validar límite de caracteres al escribir
     textArea.addEventListener("beforeinput", (e) => {
