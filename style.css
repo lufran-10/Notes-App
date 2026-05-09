@@ -42,7 +42,7 @@ button {
   --toolbar-offset: 74px;
   --btn-text:       #333;
   --btn-hover:      rgba(0,0,0,0.07);
-  --count-color:    #555;    /* era #666 — mejora ratio sobre toolbar semitransparente */
+  --count-color:    #555;
   --modal-bg:       #fff;
   --modal-overlay:  rgba(0,0,0,0.45);
   --note-text:      #131313;
@@ -74,7 +74,8 @@ button {
   --color-dot-size: 17px;
   --color-menu-trigger-size: 18px;
   --color-menu-dot-size: 26px;
-  --drag-handle-size: 32px;
+  /* Cambio 5: variable actualizada a 44px (mínimo WCAG 2.5.5) */
+  --drag-handle-size: 44px;
 }
 
 /* ── Variables: modo oscuro ── */
@@ -92,7 +93,7 @@ button {
     --toolbar-shadow: 0 2px 16px rgba(0,0,0,0.50);
     --btn-text:       #eee;
     --btn-hover:      rgba(255,255,255,0.10);
-    --count-color:    #bbb;    /* era #999 — mejora ratio sobre toolbar oscura */
+    --count-color:    #bbb;
     --modal-bg:       #252525;
     --modal-overlay:  rgba(0,0,0,0.70);
     --note-text:      #111;
@@ -121,7 +122,7 @@ html {
 html, body { min-height: 100%; }
 
 body {
-  font-family: "Caveat", cursive; /* herencia global — evita repetir en cada regla */
+  font-family: "Caveat", cursive;
   min-height: 100vh;
   min-height: 100dvh;
   padding-top: var(--toolbar-offset);
@@ -223,7 +224,7 @@ body::before {
 #help-btn  { margin-left: 4px; font-size: 18px; }
 @media (prefers-color-scheme: dark) {
   #clear-all { color: #e57373; }
-  #help-btn  { color: #bbb; } /* era #aaa — mejora ratio sobre toolbar oscura */
+  #help-btn  { color: #bbb; }
 }
 
 .note-count {
@@ -280,10 +281,6 @@ body::before {
   transition: background 0.15s;
 }
 .help-header button:hover        { background: var(--btn-hover); }
-.help-header button:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
-}
 .help-header button:focus-visible { outline: 2px solid var(--help-text); outline-offset: 2px; }
 
 .help-list {
@@ -301,6 +298,7 @@ body::before {
   cursor: default;
 }
 .help-list li:hover { background: var(--help-item-hover); }
+/* Cambio 1 (ya aplicado): color: var(--help-text) en lugar de #595959 hardcodeado */
 .help-list li .icon {
   margin-top: 2px;
   font-size: 13px;
@@ -479,11 +477,10 @@ body::before {
 
 /* ── Drag handle (solo touch/mobile) ── */
 .drag-handle {
-  /* Oculto en desktop — el drag de mouse funciona desde toda la nota */
   display: none;
 }
 
-@media (hover: none), (pointer: coarse), screen and (max-width: 400px) {
+@media (hover: none), (pointer: coarse), screen and (max-width: 25em) {
   .help-list .icon-move {
     --icon-url: url("./images/icons/grip-vertical-solid.svg");
     width: 16px;
@@ -492,25 +489,26 @@ body::before {
     mask-size: 10px 18px;
   }
 
+  /* Cambio 5: área táctil 44×44px (mínimo WCAG 2.5.5).
+     El ícono visual sigue siendo pequeño mediante mask-size. */
   .drag-handle {
     display: flex;
     align-items: center;
     justify-content: center;
     position: absolute;
-    top: 2px;
-    right: 2px;
-    width: 28px;
-    height: 28px;
+    top: 0;
+    right: 0;
+    width: 44px;
+    height: 44px;
     border-radius: 6px;
     cursor: grab;
-    touch-action: none; /* evita que el browser tome el scroll en este elemento */
+    touch-action: none;
     opacity: 0.35;
     transition: opacity 0.15s, background 0.15s;
     z-index: 3;
-    /* Ícono de grip */
     background-color: rgba(0, 0, 0, 0.55);
-    -webkit-mask: url("./images/icons/grip-vertical-solid.svg") center / 10px 18px no-repeat;
-    mask: url("./images/icons/grip-vertical-solid.svg") center / 10px 18px no-repeat;
+    -webkit-mask: url("./images/icons/grip-vertical-solid.svg") center / 12px 22px no-repeat;
+    mask: url("./images/icons/grip-vertical-solid.svg") center / 12px 22px no-repeat;
   }
 
   .drag-handle:active {
@@ -521,13 +519,11 @@ body::before {
 
 /* ── Accesibilidad: reducir movimiento ── */
 @media (prefers-reduced-motion: reduce) {
-  /* Desactivar todas las animaciones y transiciones */
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  /* Desactivar backdrop-filter costoso */
   .toolbar {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
@@ -562,16 +558,16 @@ body::before {
 .color-dot:focus-visible { outline: 2px solid #444; outline-offset: 2px; }
 
 /* ── Menú desplegable de color ── */
-.note .color-menu       { display: none; }
+.note .color-menu { display: none; }
 
-@media (hover: none), (pointer: coarse), screen and (max-width: 400px) {
+@media (hover: none), (pointer: coarse), screen and (max-width: 25em) {
   :root {
     --color-menu-trigger-size: 28px;
     --color-menu-dot-size: 28px;
-    --drag-handle-size: 32px;
+    --drag-handle-size: 44px;
   }
 
-  .note .color-picker   { display: none; }
+  .note .color-picker { display: none; }
 
   .note .color-menu {
     display: block;
@@ -594,8 +590,6 @@ body::before {
   .note .color-menu-trigger:hover        { transform: scale(1.2); border-color: rgba(0,0,0,0.5); }
   .note .color-menu-trigger:focus-visible { outline: 2px solid #444; outline-offset: 2px; }
 
-  /* Reservar espacio para el handle en la esquina superior derecha
-     y para el menú de color en la esquina inferior derecha */
   .note .input {
     padding-right: calc(var(--color-menu-trigger-size) + 6px);
     padding-bottom: calc(var(--color-menu-trigger-size) + 2px);
@@ -648,30 +642,38 @@ body::before {
   -webkit-hyphens: none;
   padding-right: 8px;
   box-sizing: border-box;
-  /* Scrollbar personalizado */
   scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
   scrollbar-width: thin;
 }
 
-/* Scrollbar para Chrome, Safari, Edge */
-.note .input::-webkit-scrollbar {
-  width: 8px;
-}
-
-.note .input::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+.note .input::-webkit-scrollbar { width: 8px; }
+.note .input::-webkit-scrollbar-track { background: transparent; }
 .note .input::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.25);
   border-radius: 10px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
-
 .note .input::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.4);
   background-clip: padding-box;
+}
+
+/* ── Toast ── */
+/* Cambio 3: extraído de JS inline a CSS, usando rem y variables del tema */
+.toast {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  z-index: 1000;
+  pointer-events: none;
+  animation: slideUp 0.3s ease;
 }
 
 /* ── Animaciones ── */
@@ -701,11 +703,13 @@ body::before {
 
 /* ════════════════════════════
    RESPONSIVE
+   Cambio 4: breakpoints migrados de px a em (÷ 16) para respetar
+   el zoom del navegador. 1024px→64em, 640px→40em, 400px→25em, 320px→20em
    ════════════════════════════ */
-@media screen and (max-width: 1024px) {
+@media screen and (max-width: 64em) {
   :root { --board-gap-col: 4%; }
 }
-@media screen and (max-width: 640px) {
+@media screen and (max-width: 40em) {
   :root {
     --toolbar-offset: 66px;
     --note-padding-top: 30px;
@@ -730,12 +734,12 @@ body::before {
   .note .color-menu-panel {
     background: rgba(40,40,40,0.95);
   }
-  /* Handle más visible en dark mode */
   .drag-handle {
     background-color: rgba(0, 0, 0, 0.70);
   }
 }
-@media screen and (max-width: 400px) {
+
+@media screen and (max-width: 25em) {
   :root {
     --toolbar-offset: 60px;
     --note-padding-top: 28px;
@@ -747,7 +751,7 @@ body::before {
     --board-gap-col: 3%;
     --color-menu-trigger-size: 28px;
     --color-menu-dot-size: 28px;
-    --drag-handle-size: 32px;
+    --drag-handle-size: 44px;
   }
 
   .container {
@@ -756,7 +760,7 @@ body::before {
     margin: 20px auto;
   }
 }
-@media screen and (max-width: 320px) {
+@media screen and (max-width: 20em) {
   :root {
     --note-padding-top: 24px;
     --note-padding-horizontal: 12px;

@@ -100,12 +100,20 @@ class NoteManager {
     if (this.colors.includes(stored)) return stored;
     const varMatch = stored.match(/^var\(--(\w+)\)$/);
     if (varMatch && this.colors.includes(varMatch[1])) return varMatch[1];
+    // Mapa de compatibilidad con colores anteriores guardados en localStorage.
+    // Incluye los valores viejos (pre-accesibilidad) y los actuales, por si
+    // algún usuario tiene notas guardadas con los hexadecimales anteriores.
     const legacyMap = {
+      // Valores originales
       "#b5e9ec": "blue",  "rgb(181, 233, 236)": "blue",
       "#fec3dd": "pink",  "rgb(254, 195, 221)": "pink",
       "#bbe9ba": "green", "rgb(187, 233, 186)": "green",
       "#f9e558": "yellow","rgb(249, 229, 88)":  "yellow",
       "#ccaafe": "purple","rgb(204, 170, 254)": "purple",
+      // Valores actualizados (por si quedaron guardados como hex)
+      "#ffed66": "yellow",
+      "#ffc7df": "pink",
+      "#d4b8ff": "purple",
     };
     return legacyMap[stored] ?? "yellow";
   }
@@ -142,22 +150,12 @@ class NoteManager {
     });
   }
 
+  // Cambio 3: _showToast() simplificado.
+  // Los estilos se movieron a la clase .toast en style.css;
+  // aquí solo se asigna la clase y se gestiona el ciclo de vida del elemento.
   _showToast(message, duration = 2500) {
     const toast = document.createElement("div");
-    toast.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.85);
-      color: #fff;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 1000;
-      animation: slideUp 0.3s ease;
-      pointer-events: none;
-    `;
+    toast.className = "toast";
     toast.textContent = message;
     document.body.appendChild(toast);
     setTimeout(() => {
@@ -176,7 +174,6 @@ class NoteManager {
     button.classList.add("thumbtack-button");
     button.title = "Eliminar nota";
     button.setAttribute("aria-label", "Eliminar nota");
-    // Evita que el mousedown inicie un drag sobre la nota
     button.addEventListener("mousedown", (e) => e.stopPropagation());
 
     const img     = document.createElement("img");
@@ -195,7 +192,6 @@ class NoteManager {
     handle.classList.add("drag-handle");
     handle.setAttribute("aria-hidden", "true");
     handle.title = "Arrastrar para mover nota";
-    // El handle no debe iniciar el drag de mouse (ese funciona desde toda la nota)
     handle.addEventListener("mousedown", (e) => e.stopPropagation());
     return handle;
   }
@@ -214,8 +210,7 @@ class NoteManager {
       "input",
       this._debounce(() => this.saveNotes(), NoteManager.SAVE_DEBOUNCE_MS)
     );
-    
-    // Validar límite de caracteres al escribir
+
     textArea.addEventListener("beforeinput", (e) => {
       const currentLength = (textArea.innerText || "").length;
       if (currentLength >= NoteStore.MAX_CONTENT_LENGTH && e.data) {
@@ -223,7 +218,7 @@ class NoteManager {
         this._showToast("Límite de caracteres alcanzado (500).");
       }
     });
-    
+
     textArea.innerText = this._sanitizeContent(content);
     return textArea;
   }
@@ -312,8 +307,6 @@ class NoteManager {
     const picker                 = this._buildColorPicker(note, trigger);
     const dragHandle             = this._buildDragHandle();
 
-    // Un único listener de eliminación, directo en el botón.
-    // No se duplica con ningún listener de delegación en el board.
     removeButton.addEventListener("click", (e) => {
       e.stopPropagation();
       this._removeNote(note);
@@ -415,7 +408,6 @@ class NoteManager {
     let _touchMoved = false;
 
     note.addEventListener("touchstart", (e) => {
-      // Solo iniciar drag si el toque viene del handle dedicado
       if (!e.target.closest(".drag-handle")) return;
       _touchMoved  = false;
       this._dragEl = note;
