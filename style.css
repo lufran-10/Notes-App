@@ -54,7 +54,7 @@ button {
   --help-text:      #333;
   --help-item-hover:rgba(0,0,0,0.04);
   --note-size:           clamp(202px, 72vw, 300px);
-  --note-padding-top:     20px;
+  --note-padding-top:     34px;
   --note-padding-horizontal: 20px;
   --note-padding-bottom:  30px;
   --note-line-height:     1.3;
@@ -707,7 +707,7 @@ body::before {
 @media screen and (max-width: 640px) {
   :root {
     --toolbar-offset: 66px;
-    --note-padding-top: 16px;
+    --note-padding-top: 30px;
     --note-padding-horizontal: 16px;
     --note-padding-bottom: 26px;
     --thumbtack-size: 40px;
@@ -737,7 +737,7 @@ body::before {
 @media screen and (max-width: 400px) {
   :root {
     --toolbar-offset: 60px;
-    --note-padding-top: 12px;
+    --note-padding-top: 28px;
     --note-padding-horizontal: 16px;
     --note-padding-bottom: 28px;
     --thumbtack-size: 36px;
@@ -757,7 +757,7 @@ body::before {
 }
 @media screen and (max-width: 320px) {
   :root {
-    --note-padding-top: 8px;
+    --note-padding-top: 24px;
     --note-padding-horizontal: 12px;
     --note-padding-bottom: 24px;
   }
