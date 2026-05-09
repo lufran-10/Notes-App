@@ -31,9 +31,9 @@ button {
   --board-bg: url("./images/cork-board-tile.webp");
   --blue:   #b5e9ec;
   --green:  #bbe9ba;
-  --yellow: #f9e558;
-  --pink:   #fec3dd;
-  --purple: #ccaafe;
+  --yellow: #ffed66;
+  --pink:   #ffc7df;
+  --purple: #d4b8ff;
 
   --toolbar-bg:     rgba(255, 255, 255, 0.75);
   --toolbar-bg-solid: rgba(255, 255, 255, 0.92);
@@ -84,7 +84,7 @@ button {
     --green:  #78bb77;
     --yellow: #CDBF65;
     --pink:   #E18EA8;
-    --purple: #A288D3;
+    --purple: #b7a1de;
 
     --toolbar-bg:     rgba(28, 28, 28, 0.88);
     --toolbar-bg-solid: rgba(28, 28, 28, 0.96);
@@ -307,7 +307,8 @@ body::before {
   width: 16px;
   height: 16px;
   text-align: center;
-  color: #595959; /* era #888 (ratio 3.54:1, falla AA) — #595959 da 7:1, pasa AAA */
+  color: var(--help-text);
+  opacity: 0.6;
   flex-shrink: 0;
 }
 
