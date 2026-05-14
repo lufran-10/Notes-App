@@ -172,12 +172,18 @@ class NoteManager {
     return button;
   }
 
-  _buildDragHandle() {
-    const handle = document.createElement("div");
+  _buildDragHandle(note) {
+    const handle = document.createElement("button");
+    handle.type = "button";
     handle.classList.add("drag-handle");
-    handle.setAttribute("aria-hidden", "true");
+    handle.setAttribute("aria-label", "Mover nota");
     handle.title = "Arrastrar para mover nota";
     handle.addEventListener("mousedown", (e) => e.stopPropagation());
+    handle.addEventListener("keydown", (e) => {
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+      e.preventDefault();
+      this._moveNoteWithKeyboard(note, e.key);
+    });
     return handle;
   }
 
@@ -235,6 +241,7 @@ class NoteManager {
     trigger.style.background = this._colorVar(colorName);
     trigger.title = "Cambiar color";
     trigger.setAttribute("aria-label", "Cambiar color de la nota");
+    trigger.setAttribute("aria-haspopup", "true");
     trigger.setAttribute("aria-expanded", "false");
     trigger.addEventListener("mousedown", (e) => e.stopPropagation());
     trigger.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
@@ -243,17 +250,36 @@ class NoteManager {
       const willOpen = !colorMenu.classList.contains("open");
       this._closeColorMenus(colorMenu);
       colorMenu.classList.toggle("open", willOpen);
+      panel.hidden = !willOpen;
+      panel.setAttribute("aria-hidden", String(!willOpen));
       trigger.setAttribute("aria-expanded", String(willOpen));
+      if (willOpen) panel.querySelector(".color-dot")?.focus();
+    });
+    trigger.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowDown" && e.key !== "ArrowRight") return;
+      e.preventDefault();
+      if (!colorMenu.classList.contains("open")) {
+        this._closeColorMenus(colorMenu);
+        colorMenu.classList.add("open");
+        panel.hidden = false;
+        panel.setAttribute("aria-hidden", "false");
+        trigger.setAttribute("aria-expanded", "true");
+      }
+      panel.querySelector(".color-dot")?.focus();
     });
 
     const panel = document.createElement("div");
     panel.classList.add("color-menu-panel");
+    panel.setAttribute("role", "menu");
+    panel.setAttribute("aria-hidden", "true");
+    panel.hidden = true;
 
     this.colors.forEach(name => {
       const dot = this._createColorButton(name, selected => {
         this._applyColor(note, trigger, selected);
         this._closeColorMenus();
       });
+      dot.setAttribute("role", "menuitem");
       panel.appendChild(dot);
     });
 
@@ -290,7 +316,7 @@ class NoteManager {
     const textArea               = this._buildTextArea(content);
     const { colorMenu, trigger } = this._buildColorMenu(note, colorName);
     const picker                 = this._buildColorPicker(note, trigger);
-    const dragHandle             = this._buildDragHandle();
+    const dragHandle             = this._buildDragHandle(note);
 
     removeButton.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -349,6 +375,26 @@ class NoteManager {
       this.saveNotes();
       this._updateCounter();
     }, { once: true });
+  }
+
+  _moveNoteWithKeyboard(note, key) {
+    const index = this._notes.indexOf(note);
+    if (index === -1) return;
+
+    const backward = key === "ArrowUp" || key === "ArrowLeft";
+    const targetIndex = backward ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= this._notes.length) return;
+
+    const target = this._notes[targetIndex];
+    if (backward) {
+      this.board.insertBefore(note, target);
+    } else {
+      this.board.insertBefore(target, note);
+    }
+
+    this._notes = [...this.board.querySelectorAll(".note")];
+    this.saveNotes();
+    note.querySelector(".drag-handle")?.focus();
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -613,6 +659,11 @@ class NoteManager {
       if (menu === except) return;
       menu.classList.remove("open");
       menu.querySelector(".color-menu-trigger")?.setAttribute("aria-expanded", "false");
+      const panel = menu.querySelector(".color-menu-panel");
+      if (panel) {
+        panel.hidden = true;
+        panel.setAttribute("aria-hidden", "true");
+      }
     });
   }
 
