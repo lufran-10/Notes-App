@@ -100,22 +100,7 @@ class NoteManager {
     if (this.colors.includes(stored)) return stored;
     const varMatch = stored.match(/^var\(--(\w+)\)$/);
     if (varMatch && this.colors.includes(varMatch[1])) return varMatch[1];
-    // Mapa de compatibilidad con colores anteriores guardados en localStorage.
-    // Incluye los valores viejos (pre-accesibilidad) y los actuales, por si
-    // algún usuario tiene notas guardadas con los hexadecimales anteriores.
-    const legacyMap = {
-      // Valores originales
-      "#b5e9ec": "blue",  "rgb(181, 233, 236)": "blue",
-      "#fec3dd": "pink",  "rgb(254, 195, 221)": "pink",
-      "#bbe9ba": "green", "rgb(187, 233, 186)": "green",
-      "#f9e558": "yellow","rgb(249, 229, 88)":  "yellow",
-      "#ccaafe": "purple","rgb(204, 170, 254)": "purple",
-      // Valores actualizados (por si quedaron guardados como hex)
-      "#ffed66": "yellow",
-      "#ffc7df": "pink",
-      "#d4b8ff": "purple",
-    };
-    return legacyMap[stored] ?? "yellow";
+    return "yellow";
   }
 
   _debounce(fn, ms) {
