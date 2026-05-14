@@ -175,7 +175,7 @@ class NoteManager {
     this._setElementHidden(panel, !open);
   }
 
-  _createButton({ classNames = [], title = "", ariaLabel = "", attributes = {}, listeners = [] } = {}) {
+  _createButton({ classNames = [], title = "", ariaLabel = "", attributes = {}, listeners = [], stopPropagation = false } = {}) {
     const button = document.createElement("button");
     button.type = "button";
     if (classNames.length) button.classList.add(...classNames);
@@ -185,7 +185,17 @@ class NoteManager {
     listeners.forEach(({ event, handler, options }) => {
       button.addEventListener(event, handler, options);
     });
+    if (stopPropagation) this._stopPointerPropagation(button);
     return button;
+  }
+
+  _createElement({ tag = "div", classNames = [], attributes = {}, listeners = [], children = [] } = {}) {
+    const element = document.createElement(tag);
+    if (classNames.length) element.classList.add(...classNames);
+    Object.entries(attributes).forEach(([name, value]) => element.setAttribute(name, value));
+    listeners.forEach(({ event, handler, options }) => element.addEventListener(event, handler, options));
+    children.forEach(child => element.appendChild(child));
+    return element;
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -197,15 +207,19 @@ class NoteManager {
       classNames: ["thumbtack-button"],
       title: "Eliminar nota",
       ariaLabel: "Eliminar nota",
+      stopPropagation: true,
     });
-    this._stopPointerPropagation(button);
 
-    const img     = document.createElement("img");
-    img.src       = this._thumbtackSrc();
-    img.alt       = "";
-    img.draggable = false;
-    img.classList.add("thumbtack");
-    img.setAttribute("aria-hidden", "true");
+    const img = this._createElement({
+      tag: "img",
+      classNames: ["thumbtack"],
+      attributes: {
+        src: this._thumbtackSrc(),
+        alt: "",
+        draggable: "false",
+        "aria-hidden": "true",
+      },
+    });
     button.appendChild(img);
 
     return button;
@@ -228,18 +242,22 @@ class NoteManager {
   }
 
   _buildTextArea(content) {
-    const textArea           = document.createElement("div");
-    textArea.classList.add("input");
+    const textArea = this._createElement({
+      tag: "div",
+      classNames: ["input"],
+      attributes: {
+        role: "textbox",
+        "aria-label": "Contenido de la nota",
+        "aria-multiline": "true",
+      },
+      listeners: [
+        { event: "mousedown", handler: (e) => e.stopPropagation() },
+        { event: "touchstart", handler: (e) => e.stopPropagation(), options: { passive: true } },
+        { event: "input", handler: this._debounce(() => this.saveNotes(), NoteManager.SAVE_DEBOUNCE_MS) },
+      ],
+    });
     textArea.contentEditable = "true";
-    textArea.spellcheck      = false;
-    textArea.setAttribute("role", "textbox");
-    textArea.setAttribute("aria-label", "Contenido de la nota");
-    textArea.setAttribute("aria-multiline", "true");
-    this._stopPointerPropagation(textArea);
-    textArea.addEventListener(
-      "input",
-      this._debounce(() => this.saveNotes(), NoteManager.SAVE_DEBOUNCE_MS)
-    );
+    textArea.spellcheck = false;
 
     textArea.addEventListener("beforeinput", (e) => {
       const currentLength = (textArea.innerText || "").length;
@@ -289,6 +307,7 @@ class NoteManager {
         "aria-haspopup": "true",
         "aria-expanded": "false",
       },
+      stopPropagation: true,
       listeners: [
         { event: "click", handler: (e) => {
           e.stopPropagation();
@@ -309,7 +328,6 @@ class NoteManager {
       ],
     });
     trigger.style.background = this._colorVar(colorName);
-    this._stopPointerPropagation(trigger);
 
 
     this.colors.forEach(name => {
@@ -391,6 +409,7 @@ class NoteManager {
       classNames: ["color-dot"],
       title: "Cambiar a este color",
       ariaLabel: `Color ${name}`,
+      stopPropagation: true,
       listeners: [
         { event: "click", handler: (e) => {
           e.stopPropagation();
@@ -398,7 +417,6 @@ class NoteManager {
         } },
       ],
     });
-    this._stopPointerPropagation(button);
     button.style.background = this._colorVar(name);
     return button;
   }
