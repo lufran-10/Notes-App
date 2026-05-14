@@ -149,17 +149,43 @@ class NoteManager {
     }, duration);
   }
 
+  _stopPointerPropagation(element) {
+    element.addEventListener("mousedown", (e) => e.stopPropagation());
+    element.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+    return element;
+  }
+
+  _setColorMenuState(colorMenu, trigger, panel, open) {
+    colorMenu.classList.toggle("open", open);
+    trigger.setAttribute("aria-expanded", String(open));
+    panel.hidden = !open;
+    panel.setAttribute("aria-hidden", String(!open));
+  }
+
+  _createButton({ classNames = [], title = "", ariaLabel = "", attributes = {}, listeners = [] } = {}) {
+    const button = document.createElement("button");
+    button.type = "button";
+    if (classNames.length) button.classList.add(...classNames);
+    if (title) button.title = title;
+    if (ariaLabel) button.setAttribute("aria-label", ariaLabel);
+    Object.entries(attributes).forEach(([name, value]) => button.setAttribute(name, value));
+    listeners.forEach(({ event, handler, options }) => {
+      button.addEventListener(event, handler, options);
+    });
+    return button;
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
   // CONSTRUCCIÓN DEL DOM DE CADA NOTA
   // ══════════════════════════════════════════════════════════════════════════
 
   _buildThumbTack() {
-    const button = document.createElement("button");
-    button.type  = "button";
-    button.classList.add("thumbtack-button");
-    button.title = "Eliminar nota";
-    button.setAttribute("aria-label", "Eliminar nota");
-    button.addEventListener("mousedown", (e) => e.stopPropagation());
+    const button = this._createButton({
+      classNames: ["thumbtack-button"],
+      title: "Eliminar nota",
+      ariaLabel: "Eliminar nota",
+    });
+    this._stopPointerPropagation(button);
 
     const img     = document.createElement("img");
     img.src       = this._thumbtackSrc();
@@ -173,16 +199,17 @@ class NoteManager {
   }
 
   _buildDragHandle(note) {
-    const handle = document.createElement("button");
-    handle.type = "button";
-    handle.classList.add("drag-handle");
-    handle.setAttribute("aria-label", "Mover nota");
-    handle.title = "Arrastrar para mover nota";
-    handle.addEventListener("mousedown", (e) => e.stopPropagation());
-    handle.addEventListener("keydown", (e) => {
-      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
-      e.preventDefault();
-      this._moveNoteWithKeyboard(note, e.key);
+    const handle = this._createButton({
+      classNames: ["drag-handle"],
+      title: "Arrastrar para mover nota",
+      ariaLabel: "Mover nota",
+      listeners: [
+        { event: "keydown", handler: (e) => {
+          if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+          e.preventDefault();
+          this._moveNoteWithKeyboard(note, e.key);
+        } },
+      ],
     });
     return handle;
   }
@@ -236,43 +263,42 @@ class NoteManager {
     colorMenu.setAttribute("role", "group");
     colorMenu.setAttribute("aria-label", "Cambiar color de la nota");
 
-    const trigger = document.createElement("button");
-    trigger.classList.add("color-menu-trigger");
-    trigger.style.background = this._colorVar(colorName);
-    trigger.title = "Cambiar color";
-    trigger.setAttribute("aria-label", "Cambiar color de la nota");
-    trigger.setAttribute("aria-haspopup", "true");
-    trigger.setAttribute("aria-expanded", "false");
-    trigger.addEventListener("mousedown", (e) => e.stopPropagation());
-    trigger.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
-    trigger.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const willOpen = !colorMenu.classList.contains("open");
-      this._closeColorMenus(colorMenu);
-      colorMenu.classList.toggle("open", willOpen);
-      panel.hidden = !willOpen;
-      panel.setAttribute("aria-hidden", String(!willOpen));
-      trigger.setAttribute("aria-expanded", String(willOpen));
-      if (willOpen) panel.querySelector(".color-dot")?.focus();
-    });
-    trigger.addEventListener("keydown", (e) => {
-      if (e.key !== "ArrowDown" && e.key !== "ArrowRight") return;
-      e.preventDefault();
-      if (!colorMenu.classList.contains("open")) {
-        this._closeColorMenus(colorMenu);
-        colorMenu.classList.add("open");
-        panel.hidden = false;
-        panel.setAttribute("aria-hidden", "false");
-        trigger.setAttribute("aria-expanded", "true");
-      }
-      panel.querySelector(".color-dot")?.focus();
-    });
-
     const panel = document.createElement("div");
     panel.classList.add("color-menu-panel");
     panel.setAttribute("role", "menu");
     panel.setAttribute("aria-hidden", "true");
     panel.hidden = true;
+
+    const trigger = this._createButton({
+      classNames: ["color-menu-trigger"],
+      title: "Cambiar color",
+      ariaLabel: "Cambiar color de la nota",
+      attributes: {
+        "aria-haspopup": "true",
+        "aria-expanded": "false",
+      },
+      listeners: [
+        { event: "click", handler: (e) => {
+          e.stopPropagation();
+          const willOpen = !colorMenu.classList.contains("open");
+          this._closeColorMenus(colorMenu);
+          this._setColorMenuState(colorMenu, trigger, panel, willOpen);
+          if (willOpen) panel.querySelector(".color-dot")?.focus();
+        } },
+        { event: "keydown", handler: (e) => {
+          if (e.key !== "ArrowDown" && e.key !== "ArrowRight") return;
+          e.preventDefault();
+          if (!colorMenu.classList.contains("open")) {
+            this._closeColorMenus(colorMenu);
+            this._setColorMenuState(colorMenu, trigger, panel, true);
+          }
+          panel.querySelector(".color-dot")?.focus();
+        } },
+      ],
+    });
+    trigger.style.background = this._colorVar(colorName);
+    this._stopPointerPropagation(trigger);
+
 
     this.colors.forEach(name => {
       const dot = this._createColorButton(name, selected => {
@@ -349,17 +375,19 @@ class NoteManager {
   }
 
   _createColorButton(name, onSelect) {
-    const button = document.createElement("button");
-    button.classList.add("color-dot");
-    button.style.background = this._colorVar(name);
-    button.title = "Cambiar a este color";
-    button.setAttribute("aria-label", `Color ${name}`);
-    button.addEventListener("mousedown", (e) => e.stopPropagation());
-    button.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
-    button.addEventListener("click", (e) => {
-      e.stopPropagation();
-      onSelect(name);
+    const button = this._createButton({
+      classNames: ["color-dot"],
+      title: "Cambiar a este color",
+      ariaLabel: `Color ${name}`,
+      listeners: [
+        { event: "click", handler: (e) => {
+          e.stopPropagation();
+          onSelect(name);
+        } },
+      ],
     });
+    this._stopPointerPropagation(button);
+    button.style.background = this._colorVar(name);
     return button;
   }
 
