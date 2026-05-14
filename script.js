@@ -155,11 +155,15 @@ class NoteManager {
     return element;
   }
 
+  _setElementHidden(element, hidden) {
+    element.hidden = hidden;
+    element.setAttribute("aria-hidden", String(hidden));
+  }
+
   _setColorMenuState(colorMenu, trigger, panel, open) {
     colorMenu.classList.toggle("open", open);
     trigger.setAttribute("aria-expanded", String(open));
-    panel.hidden = !open;
-    panel.setAttribute("aria-hidden", String(!open));
+    this._setElementHidden(panel, !open);
   }
 
   _createButton({ classNames = [], title = "", ariaLabel = "", attributes = {}, listeners = [] } = {}) {
@@ -222,8 +226,7 @@ class NoteManager {
     textArea.setAttribute("role", "textbox");
     textArea.setAttribute("aria-label", "Contenido de la nota");
     textArea.setAttribute("aria-multiline", "true");
-    textArea.addEventListener("mousedown",  (e) => e.stopPropagation());
-    textArea.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+    this._stopPointerPropagation(textArea);
     textArea.addEventListener(
       "input",
       this._debounce(() => this.saveNotes(), NoteManager.SAVE_DEBOUNCE_MS)
@@ -460,6 +463,7 @@ class NoteManager {
       const midY   = rect.top  + rect.height / 2;
       const before = e.clientY < midY || (e.clientY === midY && e.clientX < midX);
       this.board.insertBefore(this._dragEl, before ? note : note.nextSibling);
+      this._notes = [...this.board.querySelectorAll(".note")];
     });
   }
 
@@ -688,10 +692,7 @@ class NoteManager {
       menu.classList.remove("open");
       menu.querySelector(".color-menu-trigger")?.setAttribute("aria-expanded", "false");
       const panel = menu.querySelector(".color-menu-panel");
-      if (panel) {
-        panel.hidden = true;
-        panel.setAttribute("aria-hidden", "true");
-      }
+      if (panel) this._setElementHidden(panel, true);
     });
   }
 
