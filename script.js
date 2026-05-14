@@ -160,6 +160,15 @@ class NoteManager {
     element.setAttribute("aria-hidden", String(hidden));
   }
 
+  _insertNoteAtPosition(dragEl, target, x, y) {
+    const rect   = target.getBoundingClientRect();
+    const midX   = rect.left + rect.width  / 2;
+    const midY   = rect.top  + rect.height / 2;
+    const before = y < midY || (y === midY && x < midX);
+    this.board.insertBefore(dragEl, before ? target : target.nextSibling);
+    this._notes = [...this.board.querySelectorAll(".note")];
+  }
+
   _setColorMenuState(colorMenu, trigger, panel, open) {
     colorMenu.classList.toggle("open", open);
     trigger.setAttribute("aria-expanded", String(open));
@@ -458,12 +467,7 @@ class NoteManager {
     note.addEventListener("dragover", (e) => {
       e.preventDefault();
       if (!this._dragEl || this._dragEl === note) return;
-      const rect   = note.getBoundingClientRect();
-      const midX   = rect.left + rect.width  / 2;
-      const midY   = rect.top  + rect.height / 2;
-      const before = e.clientY < midY || (e.clientY === midY && e.clientX < midX);
-      this.board.insertBefore(this._dragEl, before ? note : note.nextSibling);
-      this._notes = [...this.board.querySelectorAll(".note")];
+      this._insertNoteAtPosition(this._dragEl, note, e.clientX, e.clientY);
     });
   }
 
@@ -489,13 +493,8 @@ class NoteManager {
 
       const target = below?.closest(".note");
       if (target && target !== note) {
-        const rect   = target.getBoundingClientRect();
-        const midY   = rect.top  + rect.height / 2;
-        const midX   = rect.left + rect.width  / 2;
-        const before = t.clientY < midY || (t.clientY === midY && t.clientX < midX);
-        this.board.insertBefore(note, before ? target : target.nextSibling);
+        this._insertNoteAtPosition(note, target, t.clientX, t.clientY);
       }
-      this._notes = [...this.board.querySelectorAll(".note")];
     }, { passive: true });
 
     note.addEventListener("touchend", () => {
@@ -620,7 +619,7 @@ class NoteManager {
   // ══════════════════════════════════════════════════════════════════════════
 
   _setDisclosure(panel, trigger, open) {
-    panel.hidden = !open;
+    this._setElementHidden(panel, !open);
     trigger.setAttribute("aria-expanded", String(open));
   }
 
