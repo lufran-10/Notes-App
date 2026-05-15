@@ -150,6 +150,10 @@ class NoteManager {
     const midY   = rect.top  + rect.height / 2;
     const before = y < midY || (y === midY && x < midX);
     this.board.insertBefore(dragEl, before ? target : target.nextSibling);
+    this._syncNotesFromDom();
+  }
+
+  _syncNotesFromDom() {
     this._notes = [...this.board.querySelectorAll(".note")];
   }
 
@@ -161,7 +165,7 @@ class NoteManager {
   _setDisclosure(panel, trigger, open, { cssClass } = {}) {
     panel.hidden = !open;
     panel.setAttribute("aria-hidden", String(!open));
-    trigger.setAttribute("aria-expanded", String(open));
+    trigger?.setAttribute("aria-expanded", String(open));
     if (cssClass) cssClass.el.classList.toggle(cssClass.name, open);
   }
 
@@ -304,9 +308,7 @@ class NoteManager {
     panel.classList.add("color-menu-panel");
     panel.setAttribute("role", "menu");
     // REFACTOR 1: _setDisclosure reemplaza la inicialización manual de hidden + aria-hidden.
-    this._setDisclosure(panel, { setAttribute: () => {} }, false); // inicializa panel.hidden y aria-hidden
-    panel.hidden = true;
-    panel.setAttribute("aria-hidden", "true");
+    this._setDisclosure(panel, null, false); // inicializa panel.hidden y aria-hidden
 
     const trigger = this._createButton({
       classNames: ["color-menu-trigger"],
@@ -437,12 +439,18 @@ class NoteManager {
   // ══════════════════════════════════════════════════════════════════════════
 
   _removeNote(note) {
-    note.classList.add("removing");
-    note.addEventListener("animationend", () => {
-      note.remove();
+    this._animateNoteRemoval(note, () => {
       this._notes = this._notes.filter(n => n !== note);
       this.saveNotes();
       this._updateCounter();
+    });
+  }
+
+  _animateNoteRemoval(note, onDone = null) {
+    note.classList.add("removing");
+    note.addEventListener("animationend", () => {
+      note.remove();
+      if (onDone) onDone();
     }, { once: true });
   }
 
@@ -461,7 +469,7 @@ class NoteManager {
       this.board.insertBefore(target, note);
     }
 
-    this._notes = [...this.board.querySelectorAll(".note")];
+    this._syncNotesFromDom();
     this.saveNotes();
     note.querySelector(".drag-handle")?.focus();
   }
@@ -476,21 +484,33 @@ class NoteManager {
     this._bindTouchDrag(note);
   }
 
+  _beginDrag(note, { deferDraggingClass = false } = {}) {
+    this._dragEl = note;
+    note.style.animation = "none";
+
+    const markDragging = () => note.classList.add("dragging");
+    if (deferDraggingClass) {
+      setTimeout(markDragging, 0);
+    } else {
+      markDragging();
+    }
+  }
+
+  _endDrag(note, { save = false } = {}) {
+    note.classList.remove("dragging");
+    note.style.animation = "";
+    this._dragEl = null;
+    if (save) this.saveNotes();
+  }
+
   _bindMouseDrag(note) {
     note.addEventListener("dragstart", (e) => {
-      this._dragEl = note;
-      setTimeout(() => {
-        note.classList.add("dragging");
-        note.style.animation = "none";
-      }, 0);
+      this._beginDrag(note, { deferDraggingClass: true });
       e.dataTransfer.effectAllowed = "move";
     });
 
     note.addEventListener("dragend", () => {
-      note.classList.remove("dragging");
-      note.style.animation = "";
-      this._dragEl = null;
-      this.saveNotes();
+      this._endDrag(note, { save: true });
     });
 
     note.addEventListener("dragover", (e) => {
@@ -506,14 +526,12 @@ class NoteManager {
     note.addEventListener("touchstart", (e) => {
       if (!e.target.closest(".drag-handle")) return;
       _touchMoved  = false;
-      this._dragEl = note;
-      note.style.animation = "none";
+      this._beginDrag(note);
     }, { passive: true });
 
     note.addEventListener("touchmove", (e) => {
       if (!this._dragEl) return;
       _touchMoved = true;
-      note.classList.add("dragging");
 
       const t = e.touches[0];
       note.style.visibility = "hidden";
@@ -528,10 +546,7 @@ class NoteManager {
 
     note.addEventListener("touchend", () => {
       if (!this._dragEl) return;
-      note.classList.remove("dragging");
-      note.style.animation = "";
-      this._dragEl = null;
-      if (_touchMoved) this.saveNotes();
+      this._endDrag(note, { save: _touchMoved });
     });
   }
 
@@ -573,8 +588,7 @@ class NoteManager {
   clearAll() {
     this._store.clear();
     this._notes.forEach(n => {
-      n.classList.add("removing");
-      n.addEventListener("animationend", () => n.remove(), { once: true });
+      this._animateNoteRemoval(n);
     });
     this._notes = [];
     setTimeout(() => this._updateCounter(), 300);
