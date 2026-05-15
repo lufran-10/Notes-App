@@ -48,14 +48,26 @@ class NoteManager {
 
   constructor() {
     this.colors  = ["blue", "pink", "green", "yellow", "purple"];
-    this.board   = document.getElementById("board");
-    this.counter = document.getElementById("note-count");
-    this.modal = {
-      overlay: document.getElementById("modal-overlay"),
-      title:   document.getElementById("modal-title"),
-      confirm: document.getElementById("modal-confirm"),
-      cancel:  document.getElementById("modal-cancel"),
+    this.ui = {
+      board:    document.getElementById("board"),
+      counter:  document.getElementById("note-count"),
+      create:   document.getElementById("create"),
+      clearAll: document.getElementById("clear-all"),
+      help: {
+        button: document.getElementById("help-btn"),
+        panel:  document.getElementById("help-panel"),
+        close:  document.getElementById("help-close"),
+      },
+      modal: {
+        overlay: document.getElementById("modal-overlay"),
+        title:   document.getElementById("modal-title"),
+        confirm: document.getElementById("modal-confirm"),
+        cancel:  document.getElementById("modal-cancel"),
+      },
     };
+    this.board   = this.ui.board;
+    this.counter = this.ui.counter;
+    this.modal   = this.ui.modal;
     this._store  = new NoteStore();
     this._darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
     this._dragEl = null;
@@ -323,19 +335,12 @@ class NoteManager {
         { event: "click", handler: (e) => {
           e.stopPropagation();
           const willOpen = !colorMenu.classList.contains("open");
-          this._closeColorMenus(colorMenu);
-          // REFACTOR 1+4: _setDisclosure con cssClass reemplaza a _setColorMenuState.
-          this._setDisclosure(panel, trigger, willOpen, { cssClass: { el: colorMenu, name: "open" } });
-          if (willOpen) panel.querySelector(".color-dot")?.focus();
+          this._setColorMenuOpen({ colorMenu, panel, trigger, open: willOpen, focusFirstDot: true });
         } },
         { event: "keydown", handler: (e) => {
           if (e.key !== "ArrowDown" && e.key !== "ArrowRight") return;
           e.preventDefault();
-          if (!colorMenu.classList.contains("open")) {
-            this._closeColorMenus(colorMenu);
-            this._setDisclosure(panel, trigger, true, { cssClass: { el: colorMenu, name: "open" } });
-          }
-          panel.querySelector(".color-dot")?.focus();
+          this._setColorMenuOpen({ colorMenu, panel, trigger, open: true, focusFirstDot: true });
         } },
       ],
     });
@@ -687,7 +692,7 @@ class NoteManager {
   // ══════════════════════════════════════════════════════════════════════════
 
   _bindToolbar() {
-    document.getElementById("create").addEventListener("click", () => {
+    this.ui.create.addEventListener("click", () => {
       const note = this.createNote();
       if (!note) return;
       this.saveNotes();
@@ -699,7 +704,7 @@ class NoteManager {
   }
 
   _bindModal() {
-    document.getElementById("clear-all").addEventListener("click", () => {
+    this.ui.clearAll.addEventListener("click", () => {
       if (this._notes.length === 0) return;
       this._openModal({ onConfirm: () => this.clearAll() });
     });
@@ -716,10 +721,18 @@ class NoteManager {
   }
 
   _bindHelp() {
-    const btn   = document.getElementById("help-btn");
-    const panel = document.getElementById("help-panel");
-    const close = document.getElementById("help-close");
-    this._bindDismissiblePanel({ panel, trigger: btn, closeButton: close });
+    this._bindDismissiblePanel({
+      panel: this.ui.help.panel,
+      trigger: this.ui.help.button,
+      closeButton: this.ui.help.close,
+    });
+  }
+
+  _setColorMenuOpen({ colorMenu, panel, trigger, open, focusFirstDot = false }) {
+    if (open) this._closeColorMenus(colorMenu);
+    // REFACTOR 1+4: _setDisclosure con cssClass reemplaza a _setColorMenuState.
+    this._setDisclosure(panel, trigger, open, { cssClass: { el: colorMenu, name: "open" } });
+    if (open && focusFirstDot) panel.querySelector(".color-dot")?.focus();
   }
 
   _closeColorMenus(except = null) {
