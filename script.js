@@ -65,15 +65,11 @@ class NoteManager {
         cancel:  document.getElementById("modal-cancel"),
       },
     };
-    this.board   = this.ui.board;
-    this.counter = this.ui.counter;
-    this.modal   = this.ui.modal;
     this._store  = new NoteStore();
     this._darkMQ = window.matchMedia("(prefers-color-scheme: dark)");
     this._dragEl = null;
     this._notes  = [];
     this._modalAction      = null;
-    this._modalOnClose     = null;
     this._modalReturnFocus = null;
 
     this._bindToolbar();
@@ -134,7 +130,7 @@ class NoteManager {
 
   _updateCounter() {
     const n = this._notes.length;
-    this.counter.textContent = n === 1 ? "1 nota" : `${n} notas`;
+    this.ui.counter.textContent = n === 1 ? "1 nota" : `${n} notas`;
   }
 
   _updateThumbTacks() {
@@ -161,12 +157,12 @@ class NoteManager {
     const midX   = rect.left + rect.width  / 2;
     const midY   = rect.top  + rect.height / 2;
     const before = y < midY || (y === midY && x < midX);
-    this.board.insertBefore(dragEl, before ? target : target.nextSibling);
+    this.ui.board.insertBefore(dragEl, before ? target : target.nextSibling);
     this._syncNotesFromDom();
   }
 
   _syncNotesFromDom() {
-    this._notes = [...this.board.querySelectorAll(".note")];
+    this._notes = [...this.ui.board.querySelectorAll(".note")];
   }
 
   // REFACTOR 1+4: _setDisclosure unifica el manejo de aria-expanded/hidden
@@ -401,7 +397,7 @@ class NoteManager {
     note.appendChild(picker);
     note.appendChild(colorMenu);
     note.appendChild(dragHandle);
-    this.board.appendChild(note);
+    this.ui.board.appendChild(note);
     this._notes.push(note);
 
     this._updateCounter();
@@ -469,9 +465,9 @@ class NoteManager {
 
     const target = this._notes[targetIndex];
     if (backward) {
-      this.board.insertBefore(note, target);
+      this.ui.board.insertBefore(note, target);
     } else {
-      this.board.insertBefore(target, note);
+      this.ui.board.insertBefore(target, note);
     }
 
     this._syncNotesFromDom();
@@ -609,7 +605,7 @@ class NoteManager {
     onConfirm   = null,
     hideCancel  = false,
   } = {}) {
-    const { overlay, title, confirm, cancel } = this.modal;
+    const { overlay, title, confirm, cancel } = this.ui.modal;
 
     title.textContent   = message;
     confirm.textContent = confirmText;
@@ -625,7 +621,7 @@ class NoteManager {
   }
 
   _closeModal({ confirmed = false } = {}) {
-    const { overlay, cancel } = this.modal;
+    const { overlay, cancel } = this.ui.modal;
     const action      = confirmed ? this._modalAction : null;
     const returnFocus = this._modalReturnFocus;
 
@@ -648,7 +644,7 @@ class NoteManager {
 
   _trapModalFocus(e) {
     if (e.key !== "Tab") return;
-    const { overlay } = this.modal;
+    const { overlay } = this.ui.modal;
     const focusable = [...overlay.querySelectorAll("button:not([hidden])")]
       .filter(el => !el.disabled && el.offsetParent !== null);
     if (focusable.length === 0) return;
@@ -708,13 +704,13 @@ class NoteManager {
       if (this._notes.length === 0) return;
       this._openModal({ onConfirm: () => this.clearAll() });
     });
-    this.modal.confirm.addEventListener("click", () => this._closeModal({ confirmed: true }));
-    this.modal.cancel.addEventListener("click",  () => this._closeModal());
-    this.modal.overlay.addEventListener("click", (e) => {
-      if (e.target === this.modal.overlay) this._closeModal();
+    this.ui.modal.confirm.addEventListener("click", () => this._closeModal({ confirmed: true }));
+    this.ui.modal.cancel.addEventListener("click",  () => this._closeModal());
+    this.ui.modal.overlay.addEventListener("click", (e) => {
+      if (e.target === this.ui.modal.overlay) this._closeModal();
     });
     document.addEventListener("keydown", (e) => {
-      if (this.modal.overlay.hidden) return;
+      if (this.ui.modal.overlay.hidden) return;
       if (e.key === "Escape") { this._closeModal(); return; }
       this._trapModalFocus(e);
     });

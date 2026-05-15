@@ -46,7 +46,6 @@ button {
   --modal-bg:       #fff;
   --modal-overlay:  rgba(0,0,0,0.45);
   --note-text:      #131313;
-  --char-ok:        rgba(0,0,0,0.30);
   --drag-shadow:    rgba(0,0,0,0.35);
   --help-bg:        #fff;
   --help-border:    rgba(0,0,0,0.10);
@@ -97,7 +96,6 @@ button {
     --modal-bg:       #252525;
     --modal-overlay:  rgba(0,0,0,0.70);
     --note-text:      #111;
-    --char-ok:        rgba(0,0,0,0.35);
     --drag-shadow:    rgba(0,0,0,0.60);
     --help-bg:        #252525;
     --help-border:    rgba(255,255,255,0.08);
@@ -493,8 +491,8 @@ body::before {
     position: absolute;
     top: -8px;
     right: -10px;
-    width: 44px;
-    height: 44px;
+    width: var(--drag-handle-size);
+    height: var(--drag-handle-size);
     border-radius: 6px;
     cursor: grab;
     touch-action: none;
@@ -570,7 +568,6 @@ body::before {
   :root {
     --color-menu-trigger-size: 28px;
     --color-menu-dot-size: 28px;
-    --drag-handle-size: 44px;
   }
 
   .note .color-picker { display: none; }
