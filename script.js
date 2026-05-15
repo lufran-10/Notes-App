@@ -44,8 +44,7 @@ class NoteStore {
 
 // ── NoteManager ───────────────────────────────────────────────────────────────
 class NoteManager {
-  // ── Constantes ───────────────────────────────────────────────────────────
-  static get SAVE_DEBOUNCE_MS()  { return 400; }
+  static get SAVE_DEBOUNCE_MS() { return 400; }
 
   constructor() {
     this.colors  = ["blue", "pink", "green", "yellow", "purple"];
@@ -114,12 +113,11 @@ class NoteManager {
       : "./images/white-thumbtack.png";
   }
 
+  // REFACTOR 6: _sanitizeContent unifica la limpieza de contenido.
+  // saveNotes() ya no necesita hacer replace(/\n$/, "") por separado.
   _sanitizeContent(raw) {
     if (typeof raw !== "string") return "";
-    const clamped = raw.slice(0, NoteStore.MAX_CONTENT_LENGTH);
-    const tmp = document.createElement("div");
-    tmp.appendChild(document.createTextNode(clamped));
-    return tmp.innerText || tmp.textContent || "";
+    return raw.slice(0, NoteStore.MAX_CONTENT_LENGTH).replace(/\n$/, "");
   }
 
   _updateCounter() {
@@ -135,9 +133,6 @@ class NoteManager {
     });
   }
 
-  // Cambio 3: _showToast() simplificado.
-  // Los estilos se movieron a la clase .toast en style.css;
-  // aquí solo se asigna la clase y se gestiona el ciclo de vida del elemento.
   _showToast(message, duration = 2500) {
     const toast = document.createElement("div");
     toast.className = "toast";
@@ -149,17 +144,6 @@ class NoteManager {
     }, duration);
   }
 
-  _stopPointerPropagation(element) {
-    element.addEventListener("mousedown", (e) => e.stopPropagation());
-    element.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
-    return element;
-  }
-
-  _setElementHidden(element, hidden) {
-    element.hidden = hidden;
-    element.setAttribute("aria-hidden", String(hidden));
-  }
-
   _insertNoteAtPosition(dragEl, target, x, y) {
     const rect   = target.getBoundingClientRect();
     const midX   = rect.left + rect.width  / 2;
@@ -169,10 +153,20 @@ class NoteManager {
     this._notes = [...this.board.querySelectorAll(".note")];
   }
 
-  _setColorMenuState(colorMenu, trigger, panel, open) {
-    colorMenu.classList.toggle("open", open);
+  // REFACTOR 1+4: _setDisclosure unifica el manejo de aria-expanded/hidden
+  // y reemplaza tanto a _setElementHidden+aria-hidden como a _setColorMenuState
+  // y _setDisclosure/_closeDisclosure anteriores.
+  // La opción `cssClass` permite sincronizar una clase CSS adicional (ej. "open")
+  // sin duplicar lógica.
+  _setDisclosure(panel, trigger, open, { cssClass } = {}) {
+    panel.hidden = !open;
+    panel.setAttribute("aria-hidden", String(!open));
     trigger.setAttribute("aria-expanded", String(open));
-    this._setElementHidden(panel, !open);
+    if (cssClass) cssClass.el.classList.toggle(cssClass.name, open);
+  }
+
+  _closeDisclosure(panel, trigger, opts) {
+    this._setDisclosure(panel, trigger, false, opts);
   }
 
   _createButton({ classNames = [], title = "", ariaLabel = "", attributes = {}, listeners = [], stopPropagation = false } = {}) {
@@ -185,7 +179,13 @@ class NoteManager {
     listeners.forEach(({ event, handler, options }) => {
       button.addEventListener(event, handler, options);
     });
-    if (stopPropagation) this._stopPointerPropagation(button);
+    // REFACTOR 3: stopPropagation centralizado. Todos los botones que necesitan
+    // detener mousedown/touchstart lo hacen aquí; se eliminan las llamadas
+    // manuales dispersas en _buildColorMenu, _createColorButton, etc.
+    if (stopPropagation) {
+      button.addEventListener("mousedown",  (e) => e.stopPropagation());
+      button.addEventListener("touchstart", (e) => e.stopPropagation(), { passive: true });
+    }
     return button;
   }
 
@@ -210,23 +210,20 @@ class NoteManager {
       stopPropagation: true,
     });
 
-    const img = this._createElement({
-      tag: "img",
-      classNames: ["thumbtack"],
-      attributes: {
-        src: this._thumbtackSrc(),
-        alt: "",
-        draggable: "false",
-        "aria-hidden": "true",
-      },
-    });
+    // Inline: _createElement para el img ya no aporta legibilidad extra aquí.
+    const img = document.createElement("img");
+    img.className = "thumbtack";
+    img.src = this._thumbtackSrc();
+    img.alt = "";
+    img.draggable = false;
+    img.setAttribute("aria-hidden", "true");
     button.appendChild(img);
 
     return button;
   }
 
   _buildDragHandle(note) {
-    const handle = this._createButton({
+    return this._createButton({
       classNames: ["drag-handle"],
       title: "Arrastrar para mover nota",
       ariaLabel: "Mover nota",
@@ -238,7 +235,6 @@ class NoteManager {
         } },
       ],
     });
-    return handle;
   }
 
   _buildTextArea(content) {
@@ -251,7 +247,9 @@ class NoteManager {
         "aria-multiline": "true",
       },
       listeners: [
-        { event: "mousedown", handler: (e) => e.stopPropagation() },
+        // REFACTOR 3: stopPropagation manual eliminado; se maneja en _createButton.
+        // Para el textarea usamos _createElement, así que lo declaramos aquí directamente.
+        { event: "mousedown",  handler: (e) => e.stopPropagation() },
         { event: "touchstart", handler: (e) => e.stopPropagation(), options: { passive: true } },
         { event: "input", handler: this._debounce(() => this.saveNotes(), NoteManager.SAVE_DEBOUNCE_MS) },
       ],
@@ -267,8 +265,19 @@ class NoteManager {
       }
     });
 
+    // REFACTOR 6: _sanitizeContent ya limpia el trailing \n.
     textArea.innerText = this._sanitizeContent(content);
     return textArea;
+  }
+
+  // REFACTOR 2: _buildColorDots extrae el loop idéntico que antes estaba
+  // duplicado en _buildColorPicker y _buildColorMenu.
+  _buildColorDots(container, onSelect, role = null) {
+    this.colors.forEach(name => {
+      const dot = this._createColorButton(name, onSelect);
+      if (role) dot.setAttribute("role", role);
+      container.appendChild(dot);
+    });
   }
 
   _buildColorPicker(note, triggerButton) {
@@ -277,11 +286,9 @@ class NoteManager {
     picker.setAttribute("role", "group");
     picker.setAttribute("aria-label", "Cambiar color de la nota");
 
-    this.colors.forEach(name => {
-      const dot = this._createColorButton(name, selected => {
-        this._applyColor(note, triggerButton, selected);
-      });
-      picker.appendChild(dot);
+    // REFACTOR 2: loop de dots delegado a _buildColorDots.
+    this._buildColorDots(picker, selected => {
+      this._applyColor(note, triggerButton, selected);
     });
 
     return picker;
@@ -296,8 +303,10 @@ class NoteManager {
     const panel = document.createElement("div");
     panel.classList.add("color-menu-panel");
     panel.setAttribute("role", "menu");
-    panel.setAttribute("aria-hidden", "true");
+    // REFACTOR 1: _setDisclosure reemplaza la inicialización manual de hidden + aria-hidden.
+    this._setDisclosure(panel, { setAttribute: () => {} }, false); // inicializa panel.hidden y aria-hidden
     panel.hidden = true;
+    panel.setAttribute("aria-hidden", "true");
 
     const trigger = this._createButton({
       classNames: ["color-menu-trigger"],
@@ -313,7 +322,8 @@ class NoteManager {
           e.stopPropagation();
           const willOpen = !colorMenu.classList.contains("open");
           this._closeColorMenus(colorMenu);
-          this._setColorMenuState(colorMenu, trigger, panel, willOpen);
+          // REFACTOR 1+4: _setDisclosure con cssClass reemplaza a _setColorMenuState.
+          this._setDisclosure(panel, trigger, willOpen, { cssClass: { el: colorMenu, name: "open" } });
           if (willOpen) panel.querySelector(".color-dot")?.focus();
         } },
         { event: "keydown", handler: (e) => {
@@ -321,7 +331,7 @@ class NoteManager {
           e.preventDefault();
           if (!colorMenu.classList.contains("open")) {
             this._closeColorMenus(colorMenu);
-            this._setColorMenuState(colorMenu, trigger, panel, true);
+            this._setDisclosure(panel, trigger, true, { cssClass: { el: colorMenu, name: "open" } });
           }
           panel.querySelector(".color-dot")?.focus();
         } },
@@ -329,15 +339,11 @@ class NoteManager {
     });
     trigger.style.background = this._colorVar(colorName);
 
-
-    this.colors.forEach(name => {
-      const dot = this._createColorButton(name, selected => {
-        this._applyColor(note, trigger, selected);
-        this._closeColorMenus();
-      });
-      dot.setAttribute("role", "menuitem");
-      panel.appendChild(dot);
-    });
+    // REFACTOR 2: loop de dots delegado a _buildColorDots con role="menuitem".
+    this._buildColorDots(panel, selected => {
+      this._applyColor(note, trigger, selected);
+      this._closeColorMenus();
+    }, "menuitem");
 
     colorMenu.appendChild(trigger);
     colorMenu.appendChild(panel);
@@ -355,6 +361,8 @@ class NoteManager {
       return null;
     }
 
+    // REFACTOR 7: _colorName valida el color, incluyendo el caso null→random.
+    // loadNotes() ya no necesita pre-validar typeof n.color por separado.
     const colorName = this._colorName(color ?? this._randomColor());
     const rot       = parseFloat(rotation) || parseFloat(this._randomRotation());
 
@@ -405,6 +413,9 @@ class NoteManager {
   }
 
   _createColorButton(name, onSelect) {
+    // REFACTOR 3: stopPropagation: true centraliza mousedown/touchstart.
+    // e.stopPropagation() dentro del click handler se conserva porque detiene
+    // la propagación del click (necesario para no cerrar menus).
     const button = this._createButton({
       classNames: ["color-dot"],
       title: "Cambiar a este color",
@@ -530,11 +541,11 @@ class NoteManager {
 
   saveNotes() {
     const data = this._notes.map(note => {
-      const raw  = note.querySelector(".input").innerText || "";
-      const text = raw.replace(/\n$/, "");
+      // REFACTOR 6: _sanitizeContent centraliza limpieza (trim de \n incluido).
+      const content = this._sanitizeContent(note.querySelector(".input").innerText || "");
       return {
         id:       note.dataset.id,
-        content:  text,
+        content,
         color:    note.dataset.color,
         rotation: note.dataset.rotation,
       };
@@ -546,11 +557,12 @@ class NoteManager {
   loadNotes() {
     const entries = this._store.load();
     entries.forEach(n => {
-      const content  = typeof n.content  === "string" ? n.content.slice(0, NoteStore.MAX_CONTENT_LENGTH) : "";
-      const color    = typeof n.color    === "string" ? n.color                                          : null;
-      const id       = typeof n.id       === "string" ? n.id.slice(0, NoteStore.MAX_ID_LENGTH)           : this._newId();
-      const rotation = isFinite(parseFloat(n.rotation)) ? n.rotation                                     : this._randomRotation();
-      this.createNote(content, color, id, rotation);
+      // REFACTOR 7: la validación del color se centraliza en createNote→_colorName.
+      // Aquí solo sanitizamos id y rotation; el color se pasa tal cual.
+      const content  = this._sanitizeContent(typeof n.content === "string" ? n.content : "");
+      const id       = typeof n.id === "string" ? n.id.slice(0, NoteStore.MAX_ID_LENGTH) : this._newId();
+      const rotation = isFinite(parseFloat(n.rotation)) ? n.rotation : this._randomRotation();
+      this.createNote(content, n.color ?? null, id, rotation);
     });
   }
 
@@ -636,16 +648,9 @@ class NoteManager {
   // PANEL DE AYUDA
   // ══════════════════════════════════════════════════════════════════════════
 
-  _setDisclosure(panel, trigger, open) {
-    this._setElementHidden(panel, !open);
-    trigger.setAttribute("aria-expanded", String(open));
-  }
-
-  _closeDisclosure(panel, trigger) {
-    this._setDisclosure(panel, trigger, false);
-  }
-
   _bindDismissiblePanel({ panel, trigger, closeButton }) {
+    // REFACTOR 1+4: _setDisclosure reemplaza a _setElementHidden y a la antigua
+    // dupla _setDisclosure/_closeDisclosure que existían por separado.
     trigger.addEventListener("click", (e) => {
       e.stopPropagation();
       this._setDisclosure(panel, trigger, panel.hidden);
@@ -706,10 +711,13 @@ class NoteManager {
   _closeColorMenus(except = null) {
     document.querySelectorAll(".color-menu.open").forEach(menu => {
       if (menu === except) return;
-      menu.classList.remove("open");
-      menu.querySelector(".color-menu-trigger")?.setAttribute("aria-expanded", "false");
-      const panel = menu.querySelector(".color-menu-panel");
-      if (panel) this._setElementHidden(panel, true);
+      const trigger = menu.querySelector(".color-menu-trigger");
+      const panel   = menu.querySelector(".color-menu-panel");
+      // REFACTOR 1+4: _setDisclosure con cssClass reemplaza la secuencia manual
+      // de classList.remove + setAttribute + setElementHidden.
+      if (trigger && panel) {
+        this._setDisclosure(panel, trigger, false, { cssClass: { el: menu, name: "open" } });
+      }
     });
   }
 
